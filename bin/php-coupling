@@ -1,0 +1,144 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Valbeat\PhpCoupling\Analyzer;
+use Valbeat\PhpCoupling\BalanceReport;
+use Valbeat\PhpCoupling\GitHistory;
+use Valbeat\PhpCoupling\ModuleMap;
+
+foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
+    if (file_exists($autoload)) {
+        require $autoload;
+
+        break;
+    }
+}
+
+$options = [];
+$arguments = [];
+foreach (array_slice($argv, 1) as $argument) {
+    if (!str_starts_with($argument, '--')) {
+        $arguments[] = $argument;
+
+        continue;
+    }
+    $body = substr($argument, 2);
+    [$name, $value] = str_contains($body, '=') ? explode('=', $body, 2) : [$body, true];
+    $options[$name] = $value;
+}
+
+if (isset($options['help']) || $arguments === []) {
+    fwrite(STDOUT, <<<TEXT
+    php-coupling — PHP プロジェクトの結合バランスを測る
+
+    使い方:
+      php-coupling <path> [--depth=2] [--since="12 months ago"] [--top=15] [--json]
+
+    オプション:
+      --depth     名前空間の何段目までを 1 モジュールとするか（既定 2）
+      --since     git 履歴をさかのぼる範囲（既定 "12 months ago"）
+      --top       表示する組の数（既定 15）
+      --include   解析対象を root 直下のディレクトリに限定する（カンマ区切り）
+      --exclude   除外ディレクトリをカンマ区切りで追加
+      --json      機械可読な JSON で出力する
+
+    TEXT);
+    exit($arguments === [] ? 1 : 0);
+}
+
+$root = realpath($arguments[0]);
+if ($root === false || !is_dir($root)) {
+    fwrite(STDERR, "解析対象のディレクトリが見つかりません: {$arguments[0]}\n");
+    exit(1);
+}
+
+$depth = (int) ($options['depth'] ?? 2);
+$since = (string) ($options['since'] ?? '12 months ago');
+$top = (int) ($options['top'] ?? 15);
+$excludes = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
+if (isset($options['exclude'])) {
+    $excludes = [...$excludes, ...array_map('trim', explode(',', (string) $options['exclude']))];
+}
+
+$includes = isset($options['include']) && is_string($options['include'])
+    ? array_map('trim', explode(',', $options['include']))
+    : [];
+
+$analyzer = new Analyzer($root, $excludes, $includes);
+$analyzer->run();
+
+$git = new GitHistory($root, $since);
+$hasGit = $git->load();
+
+$report = new BalanceReport($analyzer, new ModuleMap($depth), $hasGit ? $git : null, $root);
+$report->build();
+
+$pairs = $report->pairs();
+$stats = $report->stats();
+$findings = $report->findings();
+
+if (isset($options['json'])) {
+    $payload = [
+        'root' => $root,
+        'stats' => $stats,
+        'pairs' => array_map(static function (array $pair): array {
+            $pair['strength'] = $pair['strength']->label();
+            $pair['co_change_rate'] = round($pair['co_change_rate'], 3);
+
+            return $pair;
+        }, $pairs),
+        'findings' => array_map(static function (array $finding): array {
+            unset($finding['data']);
+
+            return $finding;
+        }, $findings),
+    ];
+    fwrite(STDOUT, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+    exit(0);
+}
+
+$bold = static fn (string $text): string => "\033[1m{$text}\033[0m";
+$dim = static fn (string $text): string => "\033[2m{$text}\033[0m";
+
+fwrite(STDOUT, "\n" . $bold('php-coupling') . ' ' . $dim($root) . "\n");
+fwrite(STDOUT, sprintf(
+    "  クラス %d / 参照 %d / モジュール %d / 組 %d / 解析コミット %s\n\n",
+    $stats['classes'],
+    $stats['references'],
+    $stats['modules'],
+    $stats['pairs'],
+    $hasGit ? (string) $stats['commits'] : '—（git 履歴なし）',
+));
+
+fwrite(STDOUT, $bold('痛みの上位') . $dim('（強度 × 距離 × 変動）') . "\n");
+fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %8s  %s\n", 'PAIN', 'STRENGTH', 'DIST', 'VOL', 'CO-CHG', 'MODULE PAIR'));
+
+foreach (array_slice($pairs, 0, $top) as $pair) {
+    fwrite(STDOUT, sprintf(
+        "  %4d  %-10s %4d %4d %7s%%  %s -> %s\n",
+        $pair['pain'],
+        $pair['strength']->label(),
+        $pair['distance'],
+        $pair['volatility'],
+        $hasGit ? (string) (int) round($pair['co_change_rate'] * 100) : '—',
+        $pair['from'],
+        $pair['to'],
+    ));
+}
+
+if ($findings !== []) {
+    $labels = [
+        'mutual' => '互いに依存',
+        'far-and-strong' => '遠いのに強い',
+        'hidden' => '型に出ない結合',
+        'intrusive-and-moving' => '踏み込んだ依存が動いている',
+    ];
+    fwrite(STDOUT, "\n" . $bold('指摘') . "\n");
+    foreach (array_slice($findings, 0, $top) as $finding) {
+        fwrite(STDOUT, sprintf("  [%s] %s\n      %s\n", $labels[$finding['type']], $finding['pair'], $finding['detail']));
+    }
+}
+
+fwrite(STDOUT, "\n");

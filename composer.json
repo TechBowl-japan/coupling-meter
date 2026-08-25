@@ -1,0 +1,14 @@
+{
+  "name": "valbeat/php-coupling",
+  "description": "Measure coupling balance (strength, distance, volatility) of a PHP project",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2",
+    "nikic/php-parser": "^5.0"
+  },
+  "autoload": {
+    "psr-4": { "Valbeat\\PhpCoupling\\": "src/" }
+  },
+  "bin": ["bin/php-coupling"]
+}
