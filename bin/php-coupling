@@ -112,17 +112,25 @@ fwrite(STDOUT, sprintf(
     $hasGit ? (string) $stats['commits'] : '—（git 履歴なし）',
 ));
 
-fwrite(STDOUT, $bold('痛みの上位') . $dim('（強度 × 距離 × 変動）') . "\n");
-fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %8s  %s\n", 'PAIN', 'STRENGTH', 'DIST', 'VOL', 'CO-CHG', 'MODULE PAIR'));
+$unbalanced = count(array_filter($pairs, static fn (array $pair): bool => !$pair['balanced']));
+fwrite(STDOUT, sprintf(
+    "  バランスが崩れている組: %d / %d\n\n",
+    $unbalanced,
+    count($pairs),
+));
+
+fwrite(STDOUT, $bold('直す順') . $dim('（強度と距離の釣り合いの悪さ × 観測された変動）') . "\n");
+fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %7s  %-14s %s\n", 'RANK', 'STRENGTH', 'DIST', 'VOL', 'CO-CHG', 'QUADRANT', 'MODULE PAIR'));
 
 foreach (array_slice($pairs, 0, $top) as $pair) {
     fwrite(STDOUT, sprintf(
-        "  %4d  %-10s %4d %4d %7s%%  %s -> %s\n",
+        "  %4d  %-10s %4d %4d %6s%%  %-14s %s -> %s\n",
         $pair['pain'],
         $pair['strength']->label(),
         $pair['distance'],
         $pair['volatility'],
         $hasGit ? (string) (int) round($pair['co_change_rate'] * 100) : '—',
+        $pair['quadrant'] . ($pair['balanced'] ? '' : ' !'),
         $pair['from'],
         $pair['to'],
     ));
@@ -131,7 +139,8 @@ foreach (array_slice($pairs, 0, $top) as $pair) {
 if ($findings !== []) {
     $labels = [
         'mutual' => '互いに依存',
-        'far-and-strong' => '遠いのに強い',
+        'tight-coupling' => '強度も距離も高い',
+        'low-cohesion' => '近いのに関係が薄い',
         'hidden' => '型に出ない結合',
         'intrusive-and-moving' => '踏み込んだ依存が動いている',
     ];
@@ -141,4 +150,5 @@ if ($findings !== []) {
     }
 }
 
-fwrite(STDOUT, "\n");
+fwrite(STDOUT, "\n" . $dim('VOL は git 履歴から観測した変動。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
+fwrite(STDOUT, $dim('QUADRANT の ! はバランスが崩れている組。BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY による。') . "\n\n");

@@ -11,6 +11,9 @@ namespace Valbeat\PhpCoupling;
  */
 final class BalanceReport
 {
+    /** 強度・距離・変動を高低に分ける境目。4 段階のうち 3 以上を高とみなす。 */
+    private const HIGH = 3;
+
     /** @var array<string, array<string, mixed>> */
     private array $pairs = [];
 
@@ -98,13 +101,34 @@ final class BalanceReport
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
             $shared = $moduleCount > 0 && count($dependants[$pair['to']] ?? []) >= $moduleCount * 0.4;
             $distance = $shared ? max(1, $pair['distance'] - 1) : $pair['distance'];
+            $strength = $pair['strength'];
+
+            $strengthHigh = $strength->value >= self::HIGH;
+            $distanceHigh = $distance >= self::HIGH;
+            $volatilityHigh = $volatility >= self::HIGH;
+
+            // 原著の規則: MODULARITY = STRENGTH XOR DISTANCE、COMPLEXITY = STRENGTH AND DISTANCE。
+            // 両方低い組は低凝集として、両方高い組と同じく複雑の側に置く。
+            $quadrant = match (true) {
+                $strengthHigh && $distanceHigh => 'tight-coupling',
+                !$strengthHigh && !$distanceHigh => 'low-cohesion',
+                $strengthHigh => 'high-cohesion',
+                default => 'loose-coupling',
+            };
+
+            // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
+            $balanced = ($strengthHigh xor $distanceHigh) || !$volatilityHigh;
 
             $this->pairs[$key]['distance'] = $distance;
             $this->pairs[$key]['shared_kernel'] = $shared;
             $this->pairs[$key]['volatility'] = $volatility;
+            $this->pairs[$key]['quadrant'] = $quadrant;
+            $this->pairs[$key]['balanced'] = $balanced;
             $this->pairs[$key]['co_changes'] = $coCommits;
             $this->pairs[$key]['co_change_rate'] = $base > 0 ? $coCommits / $base : 0.0;
-            $this->pairs[$key]['pain'] = $pair['strength']->value * $distance * $volatility;
+            // 順位づけのための独自の指標。原著は二値の規則を示しており、この式は本ツールの実装。
+            // 強度と距離が釣り合っていないほど、そして相手が変わるほど大きくなる。
+            $this->pairs[$key]['pain'] = (4 - abs($strength->value - $distance)) * $volatility;
         }
 
         uasort($this->pairs, static function (array $a, array $b): int {
@@ -220,12 +244,28 @@ final class BalanceReport
             $strength = $pair['strength'];
             $rate = $pair['co_change_rate'];
 
-            if ($strength->value >= 3 && $pair['distance'] >= 3 && $pair['references'] >= 20) {
+            // 強度と距離が両方高い。原著の COMPLEXITY = STRENGTH AND DISTANCE にあたる。
+            if ($pair['quadrant'] === 'tight-coupling' && !$pair['balanced'] && $pair['references'] >= 20) {
                 $findings[] = [
-                    'type' => 'far-and-strong',
+                    'type' => 'tight-coupling',
                     'pair' => $key,
                     'detail' => sprintf(
-                        '距離 %d の相手に %s で依存（%d 箇所）',
+                        '距離 %d の相手に %s で依存（%d 箇所）。相手はよく変わっている',
+                        $pair['distance'],
+                        $strength->label(),
+                        $pair['references'],
+                    ),
+                    'data' => $pair,
+                ];
+            }
+
+            // 強度と距離が両方低い。近くに置かれているのに関係が薄く、原著では低凝集として複雑の側に入る。
+            if ($pair['quadrant'] === 'low-cohesion' && !$pair['balanced'] && $pair['references'] >= 20) {
+                $findings[] = [
+                    'type' => 'low-cohesion',
+                    'pair' => $key,
+                    'detail' => sprintf(
+                        '距離 %d の近さで %s の依存が %d 箇所。近くに置く理由が弱い',
                         $pair['distance'],
                         $strength->label(),
                         $pair['references'],
