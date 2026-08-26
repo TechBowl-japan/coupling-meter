@@ -83,4 +83,42 @@ final class ReferenceCollectorTest extends TestCase
         $this->assertNotNull($reference, '属性が依存として拾えていない');
         $this->assertSame(Strength::Model, $reference->strength);
     }
+
+    private function countReferences(string $from, string $to, ?string $kind = null): int
+    {
+        $count = 0;
+        foreach (self::$references as $reference) {
+            if ($reference->from === $from && $reference->to === $to && ($kind === null || $reference->kind === $kind)) {
+                ++$count;
+            }
+        }
+
+        return $count;
+    }
+
+    public function testReferencesAfterAnonymousClassAreKept(): void
+    {
+        // 無名クラスを抜けた後の new User が、囲んでいるクラスの参照として残る
+        $this->assertSame(1, $this->countReferences('Fixture\Http\ScopeController', 'Fixture\Domain\User', 'new'));
+    }
+
+    public function testAnonymousClassIsNotASource(): void
+    {
+        foreach (self::$references as $reference) {
+            $this->assertStringNotContainsString('anonymous', $reference->from);
+            $this->assertNotSame('', $reference->from);
+        }
+    }
+
+    public function testFunctionOutsideClassIsNotAttributedToPreviousClass(): void
+    {
+        $this->assertSame(0, $this->countReferences('Fixture\Http\ScopeController', 'Fixture\Domain\LegacyUser'));
+    }
+
+    public function testVariableTypesSurviveClosures(): void
+    {
+        // クロージャの後でも、引数とプロパティの型からメソッド呼び出しを拾える
+        $this->assertSame(1, $this->countReferences('Fixture\Http\ScopeController', 'Fixture\Domain\UserFactory', 'method-call'));
+        $this->assertSame(1, $this->countReferences('Fixture\Http\ScopeController', 'Fixture\Domain\UserRepository', 'method-call'));
+    }
 }
