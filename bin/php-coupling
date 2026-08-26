@@ -152,6 +152,39 @@ if ($findings !== []) {
     }
 }
 
+$changeKinds = $report->changeKinds();
+if ($changeKinds !== []) {
+    $rows = [];
+    foreach ($changeKinds as $module => $kinds) {
+        $classified = ($kinds['Evolution'] ?? 0) + ($kinds['Correction'] ?? 0) + ($kinds['Maintenance'] ?? 0);
+        if ($classified < 10) {
+            continue;
+        }
+        $rows[$module] = [
+            'ratio' => ($kinds['Evolution'] ?? 0) / $classified,
+            'evolution' => $kinds['Evolution'] ?? 0,
+            'correction' => $kinds['Correction'] ?? 0,
+            'maintenance' => $kinds['Maintenance'] ?? 0,
+        ];
+    }
+    uasort($rows, static fn (array $a, array $b): int => $b['ratio'] <=> $a['ratio']);
+
+    if ($rows !== []) {
+        fwrite(STDOUT, "\n" . $bold('変更の中身') . $dim('（機能を足す変更が占める割合）') . "\n");
+        fwrite(STDOUT, "  進化率   進化   修正   整備  MODULE\n");
+        foreach (array_slice($rows, 0, 8, true) as $module => $row) {
+            fwrite(STDOUT, sprintf(
+                "  %5d%% %6d %6d %6d  %s\n",
+                (int) round($row['ratio'] * 100),
+                $row['evolution'],
+                $row['correction'],
+                $row['maintenance'],
+                $module,
+            ));
+        }
+    }
+}
+
 fwrite(STDOUT, "\n" . $dim('DIST は名前空間の共通の祖先から出し、触っている人が分かれている組は 1 段遠くしている。') . "\n");
 fwrite(STDOUT, $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
 fwrite(STDOUT, $dim('QUADRANT の ! はバランスが崩れている組。BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY による。') . "\n\n");

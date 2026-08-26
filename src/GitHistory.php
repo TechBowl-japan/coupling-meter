@@ -13,6 +13,9 @@ final class GitHistory
     /** @var array<string, string> コミットハッシュ => 著者名 */
     private array $authors = [];
 
+    /** @var array<string, string> コミットハッシュ => 1 行目のメッセージ */
+    private array $subjects = [];
+
     public function __construct(
         private readonly string $root,
         private readonly string $since = '12 months ago',
@@ -27,7 +30,7 @@ final class GitHistory
         $this->prefix = trim((string) $prefix);
 
         $command = sprintf(
-            'git -C %s log --since=%s --no-merges --name-only --pretty=format:__C__%%H%%x09%%an 2>/dev/null',
+            'git -C %s log --since=%s --no-merges --name-only --pretty=format:__C__%%H%%x09%%an%%x09%%s 2>/dev/null',
             escapeshellarg($this->root),
             escapeshellarg($this->since),
         );
@@ -43,10 +46,11 @@ final class GitHistory
                 continue;
             }
             if (str_starts_with($line, '__C__')) {
-                [$hash, $author] = array_pad(explode("\t", substr($line, 5), 2), 2, '');
+                [$hash, $author, $subject] = array_pad(explode("\t", substr($line, 5), 3), 3, '');
                 $current = $hash;
                 $this->commits[$current] = [];
                 $this->authors[$current] = $author;
+                $this->subjects[$current] = $subject;
 
                 continue;
             }
@@ -140,6 +144,32 @@ final class GitHistory
             }
             foreach (array_keys($modules) as $module) {
                 $result[$module][$author] = ($result[$module][$author] ?? 0) + 1;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * モジュールごとに、変更の種類を数える。
+     *
+     * @param array<string, string> $fileToModule
+     * @return array<string, array<string, int>> モジュール => 種類のラベル => 件数
+     */
+    public function moduleChangeKinds(array $fileToModule): array
+    {
+        $result = [];
+        foreach ($this->commits as $hash => $files) {
+            $kind = ChangeKind::fromSubject($this->subjects[$hash] ?? '');
+            $modules = [];
+            foreach ($files as $file) {
+                $module = $fileToModule[$file] ?? null;
+                if ($module !== null) {
+                    $modules[$module] = true;
+                }
+            }
+            foreach (array_keys($modules) as $module) {
+                $result[$module][$kind->name] = ($result[$module][$kind->name] ?? 0) + 1;
             }
         }
 
