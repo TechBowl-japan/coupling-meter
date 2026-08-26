@@ -38,11 +38,20 @@ final class ReferenceCollector extends NodeVisitorAbstract
      */
     private array $scopes = [];
 
+    /**
+     * コンテナ呼び出しの引数として既に数えたノード。
+     * app(Foo::class) の Foo::class を class-const として重ねて数えないために持つ。
+     *
+     * @var \SplObjectStorage<Node, true>
+     */
+    private \SplObjectStorage $consumed;
+
     /** @param array<string, array{kind: string, abstract: bool}> $index */
     public function __construct(
         private readonly array $index,
         private readonly string $file,
     ) {
+        $this->consumed = new \SplObjectStorage();
     }
 
     /** @return list<Reference> */
@@ -73,7 +82,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
             return null;
         }
 
-        if ($this->currentClass === null) {
+        if ($this->currentClass === null || $this->consumed->contains($node)) {
             return null;
         }
 
@@ -341,14 +350,22 @@ final class ReferenceCollector extends NodeVisitorAbstract
         $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Model, $kind, $line);
     }
 
-    /** @param list<Node\Arg> $args */
+    /**
+     * コンテナ呼び出しの第 1 引数からクラス名を取り出す。見つけた引数は消費済みにする。
+     *
+     * @param list<Node\Arg> $args
+     */
     private function classConstArgument(array $args): ?string
     {
         foreach ($args as $arg) {
             if ($arg->value instanceof Node\Expr\ClassConstFetch && $arg->value->class instanceof Node\Name) {
+                $this->consumed->attach($arg->value);
+
                 return ltrim($arg->value->class->toString(), '\\');
             }
             if ($arg->value instanceof Node\Scalar\String_) {
+                $this->consumed->attach($arg->value);
+
                 return ltrim($arg->value->value, '\\');
             }
         }
