@@ -27,7 +27,7 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 |---|---|---|
 | strength | AST | contract、model、functional、intrusive の 4 段階。相手のどこまで知っているか |
 | distance | 名前空間と git | 2 つのモジュールの最も近い共通の祖先から出す。多くのモジュールが依存する相手は共有カーネルとみなして 1 段割り引き、触っている人が分かれている組は 1 段遠くする |
-| volatility | git log | そのモジュールが実際に変更されたコミット数の分位 |
+| volatility | git log | そのモジュールが実際に変更されたコミット数の分位。同じ回数のモジュールは平均順位を取り、全員が同じなら中位に置く |
 | 推定変動性 | 上記の組み合わせ | 依存先の変動性を強度に応じて受け取った値。原著 9.5 の推定変動性 |
 | 変更の中身 | git log | Conventional Commits の prefix から、機能を足す変更（feat、perf）、修正（fix）、整備（refactor ほか）に分ける |
 | co-change | git log | 2 つのモジュールが同じコミットで変わった割合 |
@@ -66,7 +66,7 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 
 ```bash
 composer install
-bin/coupling-meter <path> [--include=app,src] [--depth=2] [--since="12 months ago"] [--top=15] [--json]
+bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
 ```
 
 ```
@@ -75,10 +75,10 @@ coupling-meter /path/to/project
 
   バランスが崩れている組: 20 / 111
 
-直す順（強度と距離の釣り合いの悪さ × 観測された変動性）
-  RANK  STRENGTH   DIST  VOL  CO-CHG  QUADRANT       MODULE PAIR
-    16  functional    3    4    40%   tight-coupling ! App\Observers -> Package\Domain
-    16  model         2    4     7%   low-cohesion ! App\Providers -> App\Filament
+直す順（均衡度の低い順。max(|強度 - 距離|, 10 - 変動性) + 1）
+   BAL  STRENGTH    STR DIST  VOL  CO-CHG  MODULE PAIR
+     1  functional    8    7   10     40%  App\Observers -> Package\Domain
+     3  model         3    2   10      7%  App\Providers -> App\Filament
 
 指摘
   [型に出ない結合] App\Providers -> App\Policies
@@ -103,11 +103,12 @@ coupling-meter /path/to/project
 | オプション | 既定 | 意味 |
 |---|---|---|
 | `--include` | なし | root 直下のこのディレクトリだけを見る |
-| `--exclude` | vendor, node_modules, storage, tests | 除外を追加する |
+| `--exclude` | vendor, node_modules, storage, bootstrap/cache, tests, test | 除外を追加する。root 直下だけでなく、途中の階層にある同名ディレクトリも除外する |
 | `--depth` | 2 | 名前空間の何段目までを 1 モジュールとするか |
 | `--since` | 12 months ago | git 履歴をさかのぼる範囲 |
 | `--top` | 15 | 表示する組の数 |
 | `--json` | なし | 機械可読な出力 |
+| `--samples` | なし | 組ごとの代表例をファイルと行つきで出す。AI に渡して判断させる用 |
 
 ## 測らないもの
 
