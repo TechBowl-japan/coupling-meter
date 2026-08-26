@@ -3,7 +3,7 @@
 PHP プロジェクトの結合バランスを計測する。
 
 依存の有無ではなく、**その結合が釣り合っているか**を出す。Vlad Khononov『Balancing Coupling in Software Design』の
-統合強度（strength）、距離（distance）、変動（volatility）を、静的解析と git 履歴から測る。
+統合強度（strength）、距離（distance）、変動性（volatility）を、静的解析と git 履歴から測る。
 
 ## 原著の規則
 
@@ -14,7 +14,7 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 ```
 
 強度と距離が打ち消し合っていればモジュラー、そろっていれば複雑になる。両方が低い組も低凝集として複雑の側に入る。
-変動が低ければ、崩れていても実害は出ない。
+変動性が低ければ、崩れていても実害は出ない。
 
 | | 距離が低い | 距離が高い |
 |---|---|---|
@@ -62,7 +62,7 @@ php-coupling /path/to/project
 
   バランスが崩れている組: 20 / 111
 
-直す順（強度と距離の釣り合いの悪さ × 観測された変動）
+直す順（強度と距離の釣り合いの悪さ × 観測された変動性）
   RANK  STRENGTH   DIST  VOL  CO-CHG  QUADRANT       MODULE PAIR
     16  functional    3    4    40%   tight-coupling ! App\Observers -> Package\Domain
     16  model         2    4     7%   low-cohesion ! App\Providers -> App\Filament
@@ -95,7 +95,7 @@ php-coupling /path/to/project
 
 ## 測らないもの
 
-- **本物の変動**。git 履歴から出るのは観測された変更頻度であって、設計が悪くて頻繁に変わっている場合と、
+- **本物の変動性**。git 履歴から出るのは観測された変更頻度であって、設計が悪くて頻繁に変わっている場合と、
   危険で誰も触れていない場合を区別しない。原著はソース管理の解析とドメイン分析を併用すべきとしている
 - **社会技術的な距離**。担当チームの違い、同期と非同期の差は反映されない。名前空間の階層はその代理でしかない
 - **実行時の依存**。DI コンテナ経由の解決、文字列のクラス名、Facade は AST から追えない

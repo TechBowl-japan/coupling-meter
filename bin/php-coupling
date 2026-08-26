@@ -119,7 +119,7 @@ fwrite(STDOUT, sprintf(
     count($pairs),
 ));
 
-fwrite(STDOUT, $bold('直す順') . $dim('（強度と距離の釣り合いの悪さ × 観測された変動）') . "\n");
+fwrite(STDOUT, $bold('直す順') . $dim('（強度と距離の釣り合いの悪さ × 観測された変動性）') . "\n");
 fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %7s  %-14s %s\n", 'RANK', 'STRENGTH', 'DIST', 'VOL', 'CO-CHG', 'QUADRANT', 'MODULE PAIR'));
 
 foreach (array_slice($pairs, 0, $top) as $pair) {
@@ -150,5 +150,5 @@ if ($findings !== []) {
     }
 }
 
-fwrite(STDOUT, "\n" . $dim('VOL は git 履歴から観測した変動。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
+fwrite(STDOUT, "\n" . $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
 fwrite(STDOUT, $dim('QUADRANT の ! はバランスが崩れている組。BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY による。') . "\n\n");

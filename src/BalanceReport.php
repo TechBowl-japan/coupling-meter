@@ -7,11 +7,11 @@ namespace Valbeat\PhpCoupling;
 /**
  * 参照と履歴を突き合わせ、モジュールの組ごとに結合バランスを組み立てる。
  *
- * 強度・距離・変動の 3 つが同時に高い箇所ほど、変更のたびに痛む。
+ * 強度・距離・変動性の 3 つが同時に高い箇所ほど、変更のたびに痛む。
  */
 final class BalanceReport
 {
-    /** 強度・距離・変動を高低に分ける境目。4 段階のうち 3 以上を高とみなす。 */
+    /** 強度・距離・変動性を高低に分ける境目。4 段階のうち 3 以上を高とみなす。 */
     private const HIGH = 3;
 
     /** @var array<string, array<string, mixed>> */
