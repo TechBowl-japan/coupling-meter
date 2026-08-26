@@ -23,4 +23,6 @@ jobs:
 
       - uses: ramsey/composer-install@v3
 
+      - run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
       - run: vendor/bin/phpunit

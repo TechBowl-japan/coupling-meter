@@ -177,7 +177,7 @@ final class Analyzer
         }
     }
 
-    /** @return list<\PhpParser\Node\Stmt>|null */
+    /** @return array<\PhpParser\Node\Stmt>|null */
     private function parse(string $file): ?array
     {
         $code = @file_get_contents($file);
