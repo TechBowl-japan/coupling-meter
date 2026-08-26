@@ -60,4 +60,22 @@ final class SampleTest extends TestCase
             $this->assertLessThanOrEqual(3, count($pair['samples']));
         }
     }
+
+    public function testSamplesPreferDistinctTargets(): void
+    {
+        // Http -> Domain は 5 種類のクラスを参照している。代表例 3 件が同じ相手に偏らない
+        foreach (self::$report->pairs() as $pair) {
+            if ($pair['from'] !== 'Fixture\\Http' || $pair['to'] !== 'Fixture\\Domain') {
+                continue;
+            }
+            $targets = array_column($pair['samples'], 'to');
+            $this->assertCount(3, $targets);
+            $this->assertSame($targets, array_values(array_unique($targets)), '代表例の相手が重複している');
+            // 強い順は保つ。先頭は intrusive な extends
+            $this->assertSame('intrusive', $pair['samples'][0]['strength']);
+
+            return;
+        }
+        $this->fail('Fixture\\Http -> Fixture\\Domain の組が見つからない');
+    }
 }

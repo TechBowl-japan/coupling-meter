@@ -45,11 +45,38 @@ final class GitHistoryTest extends TestCase
         $this->assertTrue($history->load());
 
         $commits = $history->moduleCommits([
-            'app/顧客/Customer.php' => 'App\Customer',
-            'app/Order.php' => 'App\Order',
+            'app/顧客/Customer.php' => ['App\Customer'],
+            'app/Order.php' => ['App\Order'],
         ]);
 
         $this->assertArrayHasKey('App\Customer', $commits);
         $this->assertArrayHasKey('App\Order', $commits);
+    }
+
+    public function testCommitCountOnlyIncludesCommitsThatTouchPhpFiles(): void
+    {
+        file_put_contents($this->repo . '/README.md', '# doc');
+        $this->git('add -A');
+        $this->git('commit -q -m "docs: readme"');
+
+        $history = new GitHistory($this->repo, '10 years ago');
+        $history->load();
+
+        // README だけのコミットは解析に使わないので数えない
+        $this->assertSame(1, $history->commitCount());
+    }
+
+    public function testFileWithClassesFromSeveralModulesCountsForEach(): void
+    {
+        $history = new GitHistory($this->repo, '10 years ago');
+        $history->load();
+
+        // 1 ファイルに複数モジュールのクラスが同居している場合、どちらのモジュールも変更されたとみなす
+        $commits = $history->moduleCommits([
+            'app/Order.php' => ['App\\Order', 'App\\Billing'],
+        ]);
+
+        $this->assertArrayHasKey('App\\Order', $commits);
+        $this->assertArrayHasKey('App\\Billing', $commits);
     }
 }
