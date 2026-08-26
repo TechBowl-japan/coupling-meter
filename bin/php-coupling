@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-use Valbeat\PhpCoupling\Analyzer;
-use Valbeat\PhpCoupling\BalanceReport;
-use Valbeat\PhpCoupling\GitHistory;
-use Valbeat\PhpCoupling\ModuleMap;
+use TechBowl\PhpCoupling\Analyzer;
+use TechBowl\PhpCoupling\BalanceReport;
+use TechBowl\PhpCoupling\GitHistory;
+use TechBowl\PhpCoupling\ModuleMap;
 
 foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
     if (file_exists($autoload)) {

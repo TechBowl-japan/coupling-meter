@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling\Tests;
+namespace TechBowl\PhpCoupling\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Valbeat\PhpCoupling\Analyzer;
-use Valbeat\PhpCoupling\BalanceReport;
-use Valbeat\PhpCoupling\ModuleMap;
+use TechBowl\PhpCoupling\Analyzer;
+use TechBowl\PhpCoupling\BalanceReport;
+use TechBowl\PhpCoupling\ModuleMap;
 
 final class SampleTest extends TestCase
 {

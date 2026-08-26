@@ -1,15 +1,25 @@
 {
-    "name": "valbeat/php-coupling",
+    "name": "techbowl-japan/php-coupling",
     "description": "Measure coupling balance (strength, distance, volatility) of a PHP project",
     "type": "library",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Takuma Kajikawa",
+            "email": "kj1ktk@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/TechBowl-japan/php-coupling/issues",
+        "source": "https://github.com/TechBowl-japan/php-coupling"
+    },
     "require": {
         "php": ">=8.2",
         "nikic/php-parser": "^5.0"
     },
     "autoload": {
         "psr-4": {
-            "Valbeat\\PhpCoupling\\": "src/"
+            "TechBowl\\PhpCoupling\\": "src/"
         }
     },
     "bin": [
@@ -20,7 +30,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Valbeat\\PhpCoupling\\Tests\\": "tests/"
+            "TechBowl\\PhpCoupling\\Tests\\": "tests/"
         }
     }
 }
