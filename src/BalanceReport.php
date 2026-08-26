@@ -11,7 +11,7 @@ namespace TechBowl\CouplingMeter;
  */
 final class BalanceReport
 {
-    /** 強度・距離・変動性を高低に分ける境目。4 段階のうち 3 以上を高とみなす。 */
+    /** 強度と変動性を高低に分ける境目。4 段階のうち 3 以上を高とみなす。距離は Distance が同じ規則で判定する。 */
     private const HIGH = 3;
 
     /** @var array<string, array<string, mixed>> */
@@ -77,7 +77,6 @@ final class BalanceReport
                     'from' => $from,
                     'to' => $to,
                     'strength' => Strength::Contract,
-                    'distance' => $this->modules->distance($from, $to),
                     'kinds' => [],
                     'references' => 0,
                     'samples' => [],
@@ -130,19 +129,16 @@ final class BalanceReport
 
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
             $shared = $moduleCount > 0 && count($dependants[$pair['to']] ?? []) >= $moduleCount * 0.4;
-            $distance = $shared ? max(1, $pair['distance'] - 1) : $pair['distance'];
 
             // 触っている人が分かれていれば、名前空間が近くても調整の労力は上がる。
             $ownershipOverlap = $this->ownership?->overlap($pair['from'], $pair['to']) ?? 1.0;
             $distantOwners = $this->ownership?->isDistant($pair['from'], $pair['to']) ?? false;
-            if ($distantOwners) {
-                $distance = min(4, $distance + 1);
-            }
 
+            $distance = Distance::of($this->modules, $pair['from'], $pair['to'], $shared, $distantOwners);
             $strength = $pair['strength'];
 
             $strengthHigh = $strength->value >= self::HIGH;
-            $distanceHigh = $distance >= self::HIGH;
+            $distanceHigh = $distance->isHigh();
             $volatilityHigh = $volatility >= self::HIGH;
 
             // 原著の規則: MODULARITY = STRENGTH XOR DISTANCE、COMPLEXITY = STRENGTH AND DISTANCE。
@@ -157,7 +153,7 @@ final class BalanceReport
             // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
             $balanced = ($strengthHigh xor $distanceHigh) || !$volatilityHigh;
 
-            $this->pairs[$key]['distance'] = $distance;
+            $this->pairs[$key]['distance'] = $distance->level;
             $this->pairs[$key]['shared_kernel'] = $shared;
             $this->pairs[$key]['ownership_overlap'] = round($ownershipOverlap, 2);
             $this->pairs[$key]['evolution_ratio'] = $this->evolutionRatio($pair['to']);
@@ -170,15 +166,8 @@ final class BalanceReport
             $this->pairs[$key]['co_changes'] = $coCommits;
             $this->pairs[$key]['co_change_rate'] = $base > 0 ? $coCommits / $base : 0.0;
             // 原著 10.3 の均衡結合方程式。3 つの次元を 1 から 10 の目盛りに載せて計算する。
-            $gap = $this->modules->hierarchyGap($pair['from'], $pair['to']);
-            if ($shared) {
-                $gap = max(0, $gap - 1);
-            }
-            if ($distantOwners) {
-                ++$gap;
-            }
             $strengthValue = BalanceEquation::strengthValue($strength);
-            $distanceValue = BalanceEquation::distanceValue($gap);
+            $distanceValue = $distance->scale;
             $volatilityValue = BalanceEquation::volatilityValue($volatility);
 
             $this->pairs[$key]['strength_value'] = $strengthValue;
