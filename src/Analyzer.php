@@ -27,7 +27,7 @@ final class Analyzer
      */
     public function __construct(
         private readonly string $root,
-        private readonly array $excludes = ['vendor', 'node_modules', 'storage', 'bootstrap/cache'],
+        private readonly array $excludes = Options::DEFAULT_EXCLUDES,
         private readonly array $includes = [],
     ) {
         $this->parser = (new ParserFactory())->createForNewestSupportedVersion();
