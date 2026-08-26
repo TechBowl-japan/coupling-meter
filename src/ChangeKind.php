@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 /**
  * コミットが何の変更かを分ける。

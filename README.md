@@ -1,4 +1,4 @@
-# php-coupling
+# coupling-meter
 
 PHP プロジェクトの結合バランスを計測する。
 
@@ -66,11 +66,11 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 
 ```bash
 composer install
-bin/php-coupling <path> [--include=app,src] [--depth=2] [--since="12 months ago"] [--top=15] [--json]
+bin/coupling-meter <path> [--include=app,src] [--depth=2] [--since="12 months ago"] [--top=15] [--json]
 ```
 
 ```
-php-coupling /path/to/project
+coupling-meter /path/to/project
   クラス 6530 / 参照 46710 / モジュール 22 / 組 111 / 解析コミット 5317
 
   バランスが崩れている組: 20 / 111

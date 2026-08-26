@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling\Tests;
+namespace TechBowl\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\PhpCoupling\Analyzer;
-use TechBowl\PhpCoupling\BalanceReport;
-use TechBowl\PhpCoupling\ModuleMap;
+use TechBowl\CouplingMeter\Analyzer;
+use TechBowl\CouplingMeter\BalanceReport;
+use TechBowl\CouplingMeter\ModuleMap;
 
 final class SampleTest extends TestCase
 {

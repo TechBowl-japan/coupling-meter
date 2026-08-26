@@ -5,7 +5,7 @@
          colors="true"
          cacheDirectory=".phpunit.cache">
   <testsuites>
-    <testsuite name="php-coupling">
+    <testsuite name="coupling-meter">
       <directory>tests</directory>
     </testsuite>
   </testsuites>

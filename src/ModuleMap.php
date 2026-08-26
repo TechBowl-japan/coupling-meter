@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 /** 名前空間からモジュールを切り出し、モジュール間の距離を測る。 */
 final class ModuleMap

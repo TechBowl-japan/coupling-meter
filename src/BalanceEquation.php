@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 /**
  * 原著 10.3 の均衡結合方程式。

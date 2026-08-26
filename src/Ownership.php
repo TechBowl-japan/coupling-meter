@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 /**
  * モジュールを誰が触ってきたかを持つ。

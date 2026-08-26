@@ -1,5 +1,5 @@
 {
-    "name": "techbowl-japan/php-coupling",
+    "name": "techbowl-japan/coupling-meter",
     "description": "Measure coupling balance (strength, distance, volatility) of a PHP project",
     "type": "library",
     "license": "MIT",
@@ -10,8 +10,8 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/TechBowl-japan/php-coupling/issues",
-        "source": "https://github.com/TechBowl-japan/php-coupling"
+        "issues": "https://github.com/TechBowl-japan/coupling-meter/issues",
+        "source": "https://github.com/TechBowl-japan/coupling-meter"
     },
     "require": {
         "php": ">=8.2",
@@ -19,18 +19,18 @@
     },
     "autoload": {
         "psr-4": {
-            "TechBowl\\PhpCoupling\\": "src/"
+            "TechBowl\\CouplingMeter\\": "src/"
         }
     },
     "bin": [
-        "bin/php-coupling"
+        "bin/coupling-meter"
     ],
     "require-dev": {
         "phpunit/phpunit": "^11"
     },
     "autoload-dev": {
         "psr-4": {
-            "TechBowl\\PhpCoupling\\Tests\\": "tests/"
+            "TechBowl\\CouplingMeter\\Tests\\": "tests/"
         }
     }
 }

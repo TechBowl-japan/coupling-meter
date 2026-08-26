@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling\Tests;
+namespace TechBowl\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\PhpCoupling\Ownership;
+use TechBowl\CouplingMeter\Ownership;
 
 final class OwnershipTest extends TestCase
 {

@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-use TechBowl\PhpCoupling\Analyzer;
-use TechBowl\PhpCoupling\BalanceReport;
-use TechBowl\PhpCoupling\GitHistory;
-use TechBowl\PhpCoupling\ModuleMap;
+use TechBowl\CouplingMeter\Analyzer;
+use TechBowl\CouplingMeter\BalanceReport;
+use TechBowl\CouplingMeter\GitHistory;
+use TechBowl\CouplingMeter\ModuleMap;
 
 foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
     if (file_exists($autoload)) {
@@ -31,10 +31,10 @@ foreach (array_slice($argv, 1) as $argument) {
 
 if (isset($options['help']) || $arguments === []) {
     fwrite(STDOUT, <<<TEXT
-    php-coupling — PHP プロジェクトの結合バランスを測る
+    coupling-meter — PHP プロジェクトの結合バランスを測る
 
     使い方:
-      php-coupling <path> [--depth=2] [--since="12 months ago"] [--top=15] [--json]
+      coupling-meter <path> [--depth=2] [--since="12 months ago"] [--top=15] [--json]
 
     オプション:
       --depth     名前空間の何段目までを 1 モジュールとするか（既定 2）
@@ -139,7 +139,7 @@ if (isset($options['json'])) {
 $bold = static fn (string $text): string => "\033[1m{$text}\033[0m";
 $dim = static fn (string $text): string => "\033[2m{$text}\033[0m";
 
-fwrite(STDOUT, "\n" . $bold('php-coupling') . ' ' . $dim($root) . "\n");
+fwrite(STDOUT, "\n" . $bold('coupling-meter') . ' ' . $dim($root) . "\n");
 fwrite(STDOUT, sprintf(
     "  クラス %d / 参照 %d / モジュール %d / 組 %d / 解析コミット %s\n\n",
     $stats['classes'],

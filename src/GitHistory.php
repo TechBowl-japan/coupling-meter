@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 /** git の履歴から、実際に何がどれだけ一緒に変わってきたかを読む。 */
 final class GitHistory

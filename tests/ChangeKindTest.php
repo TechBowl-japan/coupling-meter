@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling\Tests;
+namespace TechBowl\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\PhpCoupling\ChangeKind;
+use TechBowl\CouplingMeter\ChangeKind;
 
 final class ChangeKindTest extends TestCase
 {

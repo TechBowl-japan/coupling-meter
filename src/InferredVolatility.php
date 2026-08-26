@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 /**
  * 依存先から受け取る変動性を含めて、実際に変わりうる度合いを出す。

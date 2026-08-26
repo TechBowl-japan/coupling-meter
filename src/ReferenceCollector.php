@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\PhpCoupling;
+namespace TechBowl\CouplingMeter;
 
 use PhpParser\Node;
 use PhpParser\NodeVisitorAbstract;
