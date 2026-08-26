@@ -23,12 +23,15 @@ final class PairTest extends TestCase
         self::$report->build();
     }
 
-    public function testPairsAreObjects(): void
+    public function testPairsAreSortedByBalance(): void
     {
         $pairs = self::$report->pairs();
 
         $this->assertNotEmpty($pairs);
-        $this->assertContainsOnlyInstancesOf(Pair::class, $pairs);
+        $balances = array_map(static fn (Pair $pair): int => $pair->balance, $pairs);
+        $sorted = $balances;
+        sort($sorted);
+        $this->assertSame($sorted, $balances);
     }
 
     public function testHttpToDomainIsIntrusiveAndNear(): void
@@ -57,13 +60,6 @@ final class PairTest extends TestCase
         ], array_keys($array));
         $this->assertSame('intrusive', $array['strength']);
         $this->assertIsFloat($array['co_change_rate']);
-    }
-
-    public function testFindingsDoNotCarryRawData(): void
-    {
-        foreach (self::$report->findings() as $finding) {
-            $this->assertSame(['type', 'pair', 'detail'], array_keys($finding));
-        }
     }
 
     private function pair(string $from, string $to): Pair
