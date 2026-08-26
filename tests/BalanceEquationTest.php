@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling\Tests;
+namespace TechBowl\PhpCoupling\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Valbeat\PhpCoupling\BalanceEquation;
-use Valbeat\PhpCoupling\Strength;
+use TechBowl\PhpCoupling\BalanceEquation;
+use TechBowl\PhpCoupling\Strength;
 
 final class BalanceEquationTest extends TestCase
 {
