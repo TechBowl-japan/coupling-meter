@@ -169,10 +169,6 @@ final class BalanceReport
             $this->pairs[$key]['balanced'] = $balanced;
             $this->pairs[$key]['co_changes'] = $coCommits;
             $this->pairs[$key]['co_change_rate'] = $base > 0 ? $coCommits / $base : 0.0;
-            // 順位づけのための独自の指標。原著は二値の規則を示しており、この式は本ツールの実装。
-            // 強度と距離が釣り合っていないほど、そして相手が変わるほど大きくなる。
-            $this->pairs[$key]['pain'] = (4 - abs($strength->value - $distance)) * $volatility;
-
             // 原著 10.3 の均衡結合方程式。3 つの次元を 1 から 10 の目盛りに載せて計算する。
             $gap = $this->modules->hierarchyGap($pair['from'], $pair['to']);
             if ($shared) {
@@ -226,33 +222,9 @@ final class BalanceReport
         }
 
         $counts = array_values($this->moduleCommitCount);
-        if ($counts === []) {
-            return;
-        }
-        sort($counts);
-
         foreach ($this->moduleCommitCount as $module => $count) {
-            $this->volatilityScore[$module] = $this->quartile($counts, $count);
+            $this->volatilityScore[$module] = Volatility::quartile($counts, $count);
         }
-    }
-
-    /** @param list<int> $sorted */
-    private function quartile(array $sorted, int $value): int
-    {
-        $rank = 0;
-        foreach ($sorted as $entry) {
-            if ($entry <= $value) {
-                ++$rank;
-            }
-        }
-        $ratio = $rank / count($sorted);
-
-        return match (true) {
-            $ratio > 0.90 => 4,
-            $ratio > 0.70 => 3,
-            $ratio > 0.40 => 2,
-            default => 1,
-        };
     }
 
     /** 変更の少ない側を分母にする。「片方が変わるとき、もう片方も変わる割合」を見たいため。 */

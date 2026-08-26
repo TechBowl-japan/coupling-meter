@@ -30,11 +30,28 @@ final class ReferenceCollector extends NodeVisitorAbstract
     /** @var array<string, string> 変数名 => 型 FQCN */
     private array $variableTypes = [];
 
+    /**
+     * 入れ子のスコープを抜けたときに戻すための退避先。
+     * 無名クラスやクロージャに入っても、外側のクラスや変数の型を失わないようにする。
+     *
+     * @var list<array{class: ?string, properties: array<string, string>, variables: array<string, string>}>
+     */
+    private array $scopes = [];
+
+    /**
+     * コンテナ呼び出しの引数として既に数えたノード。
+     * app(Foo::class) の Foo::class を class-const として重ねて数えないために持つ。
+     *
+     * @var \SplObjectStorage<Node, true>
+     */
+    private \SplObjectStorage $consumed;
+
     /** @param array<string, array{kind: string, abstract: bool}> $index */
     public function __construct(
         private readonly array $index,
         private readonly string $file,
     ) {
+        $this->consumed = new \SplObjectStorage();
     }
 
     /** @return list<Reference> */
@@ -46,18 +63,26 @@ final class ReferenceCollector extends NodeVisitorAbstract
     public function enterNode(Node $node): null
     {
         if ($node instanceof Node\Stmt\ClassLike) {
+            $this->pushScope();
             $this->enterClassLike($node);
 
             return null;
         }
 
-        if ($this->currentClass === null) {
+        if ($node instanceof Node\FunctionLike) {
+            $this->pushScope();
+            // クラスの外にある関数は、どのクラスからの参照でもない。
+            if ($node instanceof Node\Stmt\Function_) {
+                $this->currentClass = null;
+            }
+            if ($this->currentClass !== null) {
+                $this->enterFunctionLike($node);
+            }
+
             return null;
         }
 
-        if ($node instanceof Node\Stmt\ClassMethod || $node instanceof Node\Expr\Closure) {
-            $this->enterFunctionLike($node);
-
+        if ($this->currentClass === null || $this->consumed->contains($node)) {
             return null;
         }
 
@@ -66,9 +91,39 @@ final class ReferenceCollector extends NodeVisitorAbstract
         return null;
     }
 
+    public function leaveNode(Node $node): null
+    {
+        if ($node instanceof Node\Stmt\ClassLike || $node instanceof Node\FunctionLike) {
+            $this->popScope();
+        }
+
+        return null;
+    }
+
+    private function pushScope(): void
+    {
+        $this->scopes[] = [
+            'class' => $this->currentClass,
+            'properties' => $this->propertyTypes,
+            'variables' => $this->variableTypes,
+        ];
+    }
+
+    private function popScope(): void
+    {
+        $scope = array_pop($this->scopes);
+        if ($scope === null) {
+            return;
+        }
+        $this->currentClass = $scope['class'];
+        $this->propertyTypes = $scope['properties'];
+        $this->variableTypes = $scope['variables'];
+    }
+
     private function enterClassLike(Node\Stmt\ClassLike $node): void
     {
-        $this->currentClass = $node->namespacedName?->toString() ?? $node->name?->toString();
+        // 無名クラスは名前を持たないので、参照元としては扱わない。中身は外側のクラスにも帰属させない。
+        $this->currentClass = $node->namespacedName?->toString();
         $this->propertyTypes = [];
         $this->variableTypes = [];
 
@@ -115,22 +170,33 @@ final class ReferenceCollector extends NodeVisitorAbstract
                     }
                 }
             }
+
+            // コンストラクタのプロモートされたプロパティ。クラス全体で使えるよう、ここで登録する。
+            if ($stmt instanceof Node\Stmt\ClassMethod && $stmt->name->toLowerString() === '__construct') {
+                foreach ($stmt->getParams() as $param) {
+                    if ($param->flags === 0 || !$param->var instanceof Node\Expr\Variable || !is_string($param->var->name)) {
+                        continue;
+                    }
+                    foreach ($this->typeNames($param->type) as $type) {
+                        $this->propertyTypes[$param->var->name] = $type;
+                    }
+                }
+            }
         }
     }
 
     private function enterFunctionLike(Node\FunctionLike $node): void
     {
-        $this->variableTypes = [];
+        // メソッドは新しい変数スコープ。クロージャやアロー関数は外側の型を引き継ぐ。
+        if ($node instanceof Node\Stmt\ClassMethod) {
+            $this->variableTypes = [];
+        }
 
         foreach ($node->getParams() as $param) {
             foreach ($this->typeNames($param->type) as $type) {
                 $this->addType($type, 'param-type', $param->getLine());
                 if ($param->var instanceof Node\Expr\Variable && is_string($param->var->name)) {
                     $this->variableTypes[$param->var->name] = $type;
-                }
-                // コンストラクタのプロモートされたプロパティ
-                if ($param->flags !== 0 && $param->var instanceof Node\Expr\Variable && is_string($param->var->name)) {
-                    $this->propertyTypes[$param->var->name] = $type;
                 }
             }
         }
@@ -284,14 +350,22 @@ final class ReferenceCollector extends NodeVisitorAbstract
         $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Model, $kind, $line);
     }
 
-    /** @param list<Node\Arg> $args */
+    /**
+     * コンテナ呼び出しの第 1 引数からクラス名を取り出す。見つけた引数は消費済みにする。
+     *
+     * @param list<Node\Arg> $args
+     */
     private function classConstArgument(array $args): ?string
     {
         foreach ($args as $arg) {
             if ($arg->value instanceof Node\Expr\ClassConstFetch && $arg->value->class instanceof Node\Name) {
+                $this->consumed->attach($arg->value);
+
                 return ltrim($arg->value->class->toString(), '\\');
             }
             if ($arg->value instanceof Node\Scalar\String_) {
+                $this->consumed->attach($arg->value);
+
                 return ltrim($arg->value->value, '\\');
             }
         }

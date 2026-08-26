@@ -30,7 +30,8 @@ final class GitHistory
         $this->prefix = trim((string) $prefix);
 
         $command = sprintf(
-            'git -C %s log --since=%s --no-merges --name-only --pretty=format:__C__%%H%%x09%%an%%x09%%s 2>/dev/null',
+            // core.quotepath を切らないと、非 ASCII のパスが "\343\201\202" のように引用・エスケープされて出る。
+            'git -C %s -c core.quotepath=false log --since=%s --no-merges --name-only --pretty=format:__C__%%H%%x09%%an%%x09%%s 2>/dev/null',
             escapeshellarg($this->root),
             escapeshellarg($this->since),
         );

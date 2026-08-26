@@ -34,7 +34,7 @@ if (isset($options['help']) || $arguments === []) {
     coupling-meter — PHP プロジェクトの結合バランスを測る
 
     使い方:
-      coupling-meter <path> [--depth=2] [--since="12 months ago"] [--top=15] [--json]
+      coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
 
     オプション:
       --depth     名前空間の何段目までを 1 モジュールとするか（既定 2）
@@ -227,4 +227,4 @@ fwrite(STDOUT, "\n" . $dim('BAL は均衡度。1 が最も複雑性に傾き、1
 fwrite(STDOUT, $dim('STR / DIST / VOL は 1 から 10 の目盛り。著者は「これは正確な科学ではない」と断っている。') . "\n");
 fwrite(STDOUT, $dim('DIST は名前空間の共通の祖先から出し、触っている人が分かれている組は 1 段遠くしている。') . "\n");
 fwrite(STDOUT, $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
-fwrite(STDOUT, $dim('QUADRANT の ! はバランスが崩れている組。BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY による。') . "\n\n");
+fwrite(STDOUT, $dim('「バランスが崩れている組」は BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY が偽になる組。--json の balanced で組ごとに見られる。') . "\n\n");
