@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Valbeat\PhpCoupling\Tests;
+
+use PHPUnit\Framework\TestCase;
+use Valbeat\PhpCoupling\Analyzer;
+use Valbeat\PhpCoupling\BalanceReport;
+use Valbeat\PhpCoupling\ModuleMap;
+
+final class SampleTest extends TestCase
+{
+    private static BalanceReport $report;
+
+    public static function setUpBeforeClass(): void
+    {
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer->run();
+        self::$report = new BalanceReport($analyzer, new ModuleMap(2), null, __DIR__ . '/fixtures/app');
+        self::$report->build();
+    }
+
+    public function testEachPairCarriesSamples(): void
+    {
+        foreach (self::$report->pairs() as $pair) {
+            $this->assertNotEmpty($pair['samples'], "{$pair['from']} -> {$pair['to']} に代表例がない");
+        }
+    }
+
+    public function testSamplesPointAtFileAndLine(): void
+    {
+        $pairs = self::$report->pairs();
+        $sample = $pairs[0]['samples'][0];
+
+        $this->assertArrayHasKey('file', $sample);
+        $this->assertArrayHasKey('line', $sample);
+        $this->assertArrayHasKey('kind', $sample);
+        $this->assertArrayHasKey('strength', $sample);
+        $this->assertGreaterThan(0, $sample['line']);
+    }
+
+    public function testStrongestReferenceComesFirst(): void
+    {
+        // Http -> Support は trait の use（intrusive）を含む。代表例の先頭がそれになる
+        foreach (self::$report->pairs() as $pair) {
+            if ($pair['from'] !== 'Fixture\Http' || $pair['to'] !== 'Fixture\Support') {
+                continue;
+            }
+            $this->assertSame('intrusive', $pair['samples'][0]['strength']);
+
+            return;
+        }
+        $this->fail('Fixture\Http -> Fixture\Support の組が見つからない');
+    }
+
+    public function testSamplesAreCapped(): void
+    {
+        foreach (self::$report->pairs() as $pair) {
+            $this->assertLessThanOrEqual(3, count($pair['samples']));
+        }
+    }
+}

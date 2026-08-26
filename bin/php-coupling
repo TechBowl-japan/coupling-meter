@@ -43,6 +43,7 @@ if (isset($options['help']) || $arguments === []) {
       --include   解析対象を root 直下のディレクトリに限定する（カンマ区切り）
       --exclude   除外ディレクトリをカンマ区切りで追加
       --json      機械可読な JSON で出力する
+      --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
 
     TEXT);
     exit($arguments === [] ? 1 : 0);
@@ -78,6 +79,42 @@ $report->build();
 $pairs = $report->pairs();
 $stats = $report->stats();
 $findings = $report->findings();
+
+// AI や人が読むための、境界ごとの代表例。コード全体ではなく、組の代表だけを出す。
+if (isset($options['samples'])) {
+    fwrite(STDOUT, "# 結合の境界と、その代表例\n\n");
+    fwrite(STDOUT, sprintf(
+        "モジュールの組 %d 件。均衡度の低い順。均衡度は max(|強度 - 距離|, 10 - 変動性) + 1 で、1 が最も複雑性に傾く。\n\n",
+        count($pairs),
+    ));
+    foreach (array_slice($pairs, 0, $top) as $pair) {
+        fwrite(STDOUT, sprintf(
+            "## %s -> %s\n\n均衡度 %d / 強度 %s(%d) / 距離 %d / 変動性 %d / 参照 %d 箇所 / 同時変更 %d%%\n\n",
+            $pair['from'],
+            $pair['to'],
+            $pair['balance'],
+            $pair['strength']->label(),
+            $pair['strength_value'],
+            $pair['distance_value'],
+            $pair['volatility_value'],
+            $pair['references'],
+            (int) round($pair['co_change_rate'] * 100),
+        ));
+        foreach ($pair['samples'] as $sample) {
+            fwrite(STDOUT, sprintf(
+                "- %s:%d  %s（%s）  %s -> %s\n",
+                $sample['file'],
+                $sample['line'],
+                $sample['strength'],
+                $sample['kind'],
+                $sample['from'],
+                $sample['to'],
+            ));
+        }
+        fwrite(STDOUT, "\n");
+    }
+    exit(0);
+}
 
 if (isset($options['json'])) {
     $payload = [
