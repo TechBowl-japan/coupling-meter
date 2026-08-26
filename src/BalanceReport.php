@@ -25,6 +25,9 @@ final class BalanceReport
 
     private ?Ownership $ownership = null;
 
+    /** @var array<string, array<string, int>> モジュール => 変更の種類 => 件数 */
+    private array $changeKinds = [];
+
     private int $classCount = 0;
 
     private int $referenceCount = 0;
@@ -56,6 +59,7 @@ final class BalanceReport
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
         if ($this->git !== null) {
             $this->ownership = new Ownership($this->git->moduleAuthors($fileToModule));
+            $this->changeKinds = $this->git->moduleChangeKinds($fileToModule);
         }
 
         foreach ($references as $reference) {
@@ -135,6 +139,7 @@ final class BalanceReport
             $this->pairs[$key]['distance'] = $distance;
             $this->pairs[$key]['shared_kernel'] = $shared;
             $this->pairs[$key]['ownership_overlap'] = round($ownershipOverlap, 2);
+            $this->pairs[$key]['evolution_ratio'] = $this->evolutionRatio($pair['to']);
             $this->pairs[$key]['distant_owners'] = $distantOwners;
             $this->pairs[$key]['volatility'] = $volatility;
             $this->pairs[$key]['quadrant'] = $quadrant;
@@ -364,6 +369,31 @@ final class BalanceReport
             'pairs' => count($this->pairs),
             'commits' => $this->commitCount,
         ];
+    }
+
+    /**
+     * そのモジュールの変更のうち、機能を足す変更が占める割合。
+     * 高いほど、ビジネスが力を入れている領域とみなせる。分類できない場合は null。
+     */
+    private function evolutionRatio(string $module): ?float
+    {
+        $kinds = $this->changeKinds[$module] ?? null;
+        if ($kinds === null) {
+            return null;
+        }
+
+        $classified = ($kinds['Evolution'] ?? 0) + ($kinds['Correction'] ?? 0) + ($kinds['Maintenance'] ?? 0);
+        if ($classified < 5) {
+            return null;
+        }
+
+        return round(($kinds['Evolution'] ?? 0) / $classified, 2);
+    }
+
+    /** @return array<string, array<string, int>> */
+    public function changeKinds(): array
+    {
+        return $this->changeKinds;
     }
 
     /** @return array<string, int> */
