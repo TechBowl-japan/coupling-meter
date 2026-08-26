@@ -29,6 +29,15 @@ final class ModuleMap
      */
     public function distance(string $a, string $b): int
     {
+        return max(1, min(4, $this->hierarchyGap($a, $b)));
+    }
+
+    /**
+     * 共通の祖先を取り除いた階層の差。原著 8.1.3 の距離の評価方法。
+     * こちらはクランプしない生の値を返す。
+     */
+    public function hierarchyGap(string $a, string $b): int
+    {
         if ($a === $b) {
             return 0;
         }
@@ -42,8 +51,6 @@ final class ModuleMap
             ++$shared;
         }
 
-        $distance = (count($left) - $shared) + (count($right) - $shared);
-
-        return max(1, min(4, $distance));
+        return (count($left) - $shared) + (count($right) - $shared);
     }
 }

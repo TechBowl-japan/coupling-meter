@@ -119,18 +119,18 @@ fwrite(STDOUT, sprintf(
     count($pairs),
 ));
 
-fwrite(STDOUT, $bold('直す順') . $dim('（強度と距離の釣り合いの悪さ × 観測された変動性）') . "\n");
-fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %7s  %-14s %s\n", 'RANK', 'STRENGTH', 'DIST', 'VOL', 'CO-CHG', 'QUADRANT', 'MODULE PAIR'));
+fwrite(STDOUT, $bold('直す順') . $dim('（均衡度の低い順。max(|強度 - 距離|, 10 - 変動性) + 1）') . "\n");
+fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %4s %7s  %s\n", 'BAL', 'STRENGTH', 'STR', 'DIST', 'VOL', 'CO-CHG', 'MODULE PAIR'));
 
 foreach (array_slice($pairs, 0, $top) as $pair) {
     fwrite(STDOUT, sprintf(
-        "  %4d  %-10s %4d %4d %6s%%  %-14s %s -> %s\n",
-        $pair['pain'],
+        "  %4d  %-10s %4d %4d %4d %6s%%  %s -> %s\n",
+        $pair['balance'],
         $pair['strength']->label(),
-        $pair['distance'],
-        $pair['volatility'],
+        $pair['strength_value'],
+        $pair['distance_value'],
+        $pair['volatility_value'],
         $hasGit ? (string) (int) round($pair['co_change_rate'] * 100) : '—',
-        $pair['quadrant'] . ($pair['balanced'] ? '' : ' !'),
         $pair['from'],
         $pair['to'],
     ));
@@ -186,6 +186,8 @@ if ($changeKinds !== []) {
     }
 }
 
-fwrite(STDOUT, "\n" . $dim('DIST は名前空間の共通の祖先から出し、触っている人が分かれている組は 1 段遠くしている。') . "\n");
+fwrite(STDOUT, "\n" . $dim('BAL は均衡度。1 が最も複雑性に傾き、10 が最もモジュラー。原著 10.3 の式による。') . "\n");
+fwrite(STDOUT, $dim('STR / DIST / VOL は 1 から 10 の目盛り。著者は「これは正確な科学ではない」と断っている。') . "\n");
+fwrite(STDOUT, $dim('DIST は名前空間の共通の祖先から出し、触っている人が分かれている組は 1 段遠くしている。') . "\n");
 fwrite(STDOUT, $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
 fwrite(STDOUT, $dim('QUADRANT の ! はバランスが崩れている組。BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY による。') . "\n\n");
