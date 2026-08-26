@@ -144,6 +144,7 @@ if ($findings !== []) {
         'hidden' => '型に出ない結合',
         'string-reference' => '文字列で書かれた依存',
         'split-ownership' => '触っている人が分かれている',
+        'inherited-volatility' => '相手の変動性をもらっている',
         'intrusive-and-moving' => '踏み込んだ依存が動いている',
     ];
     fwrite(STDOUT, "\n" . $bold('指摘') . "\n");
