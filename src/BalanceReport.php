@@ -88,9 +88,16 @@ final class BalanceReport
             $pair['strength'] = $pair['strength']->max($reference->strength);
             $pair['kinds'][$reference->kind] = ($pair['kinds'][$reference->kind] ?? 0) + 1;
             ++$pair['references'];
-            if ($reference->strength === Strength::Intrusive && count($pair['samples']) < 3) {
-                $pair['samples'][] = sprintf('%s:%d (%s)', $this->relative($reference->file), $reference->line, $reference->kind);
-            }
+            // 代表例は強い順に残す。AI や人がその箇所だけを読めるようにするため。
+            $pair['samples'][] = [
+                'file' => $this->relative($reference->file),
+                'line' => $reference->line,
+                'kind' => $reference->kind,
+                'strength' => $reference->strength->label(),
+                'from' => $reference->from,
+                'to' => $reference->to,
+                'weight' => $reference->strength->value,
+            ];
             unset($pair);
         }
 
@@ -183,6 +190,19 @@ final class BalanceReport
             $this->pairs[$key]['volatility_value'] = $volatilityValue;
             $this->pairs[$key]['modularity'] = BalanceEquation::modularity($strengthValue, $distanceValue);
             $this->pairs[$key]['balance'] = BalanceEquation::balance($strengthValue, $distanceValue, $volatilityValue);
+        }
+
+        foreach ($this->pairs as $key => $pair) {
+            $samples = $pair['samples'];
+            usort($samples, static fn (array $a, array $b): int => $b['weight'] <=> $a['weight']);
+            $this->pairs[$key]['samples'] = array_map(
+                static function (array $sample): array {
+                    unset($sample['weight']);
+
+                    return $sample;
+                },
+                array_slice($samples, 0, 3),
+            );
         }
 
         // 均衡度が低いほど複雑性に傾いている。低い順に並べる。
