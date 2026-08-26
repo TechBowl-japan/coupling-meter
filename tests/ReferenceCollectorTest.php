@@ -134,4 +134,11 @@ final class ReferenceCollectorTest extends TestCase
         $this->assertSame(1, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Domain\\UserFactory', 'container'));
         $this->assertSame(0, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Domain\\UserFactory', 'string-class'));
     }
+
+    public function testAnonymousClassDependenciesBelongToTheEnclosingClass(): void
+    {
+        // new class extends LegacyBase { use Audit; } は ScopeController の intrusive な依存
+        $this->assertSame(1, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Domain\\LegacyBase', 'extends'));
+        $this->assertSame(1, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Support\\Audit', 'use-trait'));
+    }
 }
