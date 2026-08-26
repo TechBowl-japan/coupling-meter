@@ -24,17 +24,8 @@ final class ModuleMap
     }
 
     /**
-     * 共通の名前空間を取り除いた残りの階層数を距離とする。
-     * 同じモジュールなら 0、離れるほど大きく、上限は 4。
-     */
-    public function distance(string $a, string $b): int
-    {
-        return max(1, min(4, $this->hierarchyGap($a, $b)));
-    }
-
-    /**
      * 共通の祖先を取り除いた階層の差。原著 8.1.3 の距離の評価方法。
-     * こちらはクランプしない生の値を返す。
+     * 補正と目盛りへの変換は Distance が行う。
      */
     public function hierarchyGap(string $a, string $b): int
     {
