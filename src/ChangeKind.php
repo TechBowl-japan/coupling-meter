@@ -30,14 +30,4 @@ enum ChangeKind
             default => self::Unknown,
         };
     }
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::Evolution => '進化',
-            self::Correction => '修正',
-            self::Maintenance => '整備',
-            self::Unknown => '分類なし',
-        };
-    }
 }
