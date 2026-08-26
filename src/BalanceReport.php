@@ -28,6 +28,8 @@ final class BalanceReport
     /** @var array<string, array<string, int>> モジュール => 変更の種類 => 件数 */
     private array $changeKinds = [];
 
+    private ?InferredVolatility $inferred = null;
+
     private int $classCount = 0;
 
     private int $referenceCount = 0;
@@ -101,6 +103,18 @@ final class BalanceReport
             array_column($this->pairs, 'to'),
         )));
 
+        $this->inferred = new InferredVolatility(
+            $this->volatilityScore,
+            array_map(
+                static fn (array $pair): array => [
+                    'from' => $pair['from'],
+                    'to' => $pair['to'],
+                    'strength' => $pair['strength'],
+                ],
+                array_values($this->pairs),
+            ),
+        );
+
         foreach ($this->pairs as $key => $pair) {
             $volatility = $this->volatilityScore[$pair['to']] ?? 1;
             $coKey = $this->coKey($pair['from'], $pair['to']);
@@ -140,6 +154,8 @@ final class BalanceReport
             $this->pairs[$key]['shared_kernel'] = $shared;
             $this->pairs[$key]['ownership_overlap'] = round($ownershipOverlap, 2);
             $this->pairs[$key]['evolution_ratio'] = $this->evolutionRatio($pair['to']);
+            $this->pairs[$key]['inferred_volatility_from'] = $this->inferred->of($pair['from']);
+            $this->pairs[$key]['volatility_inherited'] = $this->inferred->isInherited($pair['from']);
             $this->pairs[$key]['distant_owners'] = $distantOwners;
             $this->pairs[$key]['volatility'] = $volatility;
             $this->pairs[$key]['quadrant'] = $quadrant;
@@ -274,6 +290,27 @@ final class BalanceReport
                         $pair['distance'],
                         $strength->label(),
                         $pair['references'],
+                    ),
+                    'data' => $pair,
+                ];
+            }
+
+            // 自分はあまり変わらないのに、よく変わる相手と強く結びついている組。
+            $ownVolatility = $this->volatilityScore[$pair['from']] ?? 1;
+            $carried = InferredVolatility::carried($strength, $this->volatilityScore[$pair['to']] ?? 1);
+            if ($carried > $ownVolatility
+                && $strength->value >= 3
+                && $ownVolatility <= 2
+                && $pair['references'] >= 20
+            ) {
+                $findings[] = [
+                    'type' => 'inherited-volatility',
+                    'pair' => $key,
+                    'detail' => sprintf(
+                        '自分はあまり変わらない（%d）が、よく変わる相手（%d）に %s で依存している',
+                        $ownVolatility,
+                        $this->volatilityScore[$pair['to']] ?? 1,
+                        $strength->label(),
                     ),
                     'data' => $pair,
                 ];
