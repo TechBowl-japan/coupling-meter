@@ -8,6 +8,7 @@ use TechBowl\CouplingMeter\BalanceReport;
 use TechBowl\CouplingMeter\GitHistory;
 use TechBowl\CouplingMeter\ModuleMap;
 use TechBowl\CouplingMeter\Options;
+use TechBowl\CouplingMeter\Pair;
 
 foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
     if (file_exists($autoload)) {
@@ -79,17 +80,17 @@ if ($options->samples) {
     foreach (array_slice($pairs, 0, $top) as $pair) {
         fwrite(STDOUT, sprintf(
             "## %s -> %s\n\n均衡度 %d / 強度 %s(%d) / 距離 %d / 変動性 %d / 参照 %d 箇所 / 同時変更 %d%%\n\n",
-            $pair['from'],
-            $pair['to'],
-            $pair['balance'],
-            $pair['strength']->label(),
-            $pair['strength_value'],
-            $pair['distance_value'],
-            $pair['volatility_value'],
-            $pair['references'],
-            (int) round($pair['co_change_rate'] * 100),
+            $pair->from,
+            $pair->to,
+            $pair->balance,
+            $pair->strength->label(),
+            $pair->strengthValue,
+            $pair->distanceValue,
+            $pair->volatilityValue,
+            $pair->references,
+            (int) round($pair->coChangeRate * 100),
         ));
-        foreach ($pair['samples'] as $sample) {
+        foreach ($pair->samples as $sample) {
             fwrite(STDOUT, sprintf(
                 "- %s:%d  %s（%s）  %s -> %s\n",
                 $sample['file'],
@@ -109,17 +110,13 @@ if ($options->json) {
     $payload = [
         'root' => $root,
         'stats' => $stats,
-        'pairs' => array_map(static function (array $pair): array {
-            $pair['strength'] = $pair['strength']->label();
-            $pair['co_change_rate'] = round($pair['co_change_rate'], 3);
+        'pairs' => array_map(static function (Pair $pair): array {
+            $array = $pair->toArray();
+            $array['co_change_rate'] = round($pair->coChangeRate, 3);
 
-            return $pair;
+            return $array;
         }, $pairs),
-        'findings' => array_map(static function (array $finding): array {
-            unset($finding['data']);
-
-            return $finding;
-        }, $findings),
+        'findings' => $findings,
     ];
     fwrite(STDOUT, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
     exit(0);
@@ -138,7 +135,7 @@ fwrite(STDOUT, sprintf(
     $hasGit ? (string) $stats['commits'] : '—（git 履歴なし）',
 ));
 
-$unbalanced = count(array_filter($pairs, static fn (array $pair): bool => !$pair['balanced']));
+$unbalanced = count(array_filter($pairs, static fn (Pair $pair): bool => !$pair->balanced));
 fwrite(STDOUT, sprintf(
     "  バランスが崩れている組: %d / %d\n\n",
     $unbalanced,
@@ -151,14 +148,14 @@ fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %4s %7s  %s\n", 'BAL', 'STRENGTH', 
 foreach (array_slice($pairs, 0, $top) as $pair) {
     fwrite(STDOUT, sprintf(
         "  %4d  %-10s %4d %4d %4d %6s%%  %s -> %s\n",
-        $pair['balance'],
-        $pair['strength']->label(),
-        $pair['strength_value'],
-        $pair['distance_value'],
-        $pair['volatility_value'],
-        $hasGit ? (string) (int) round($pair['co_change_rate'] * 100) : '—',
-        $pair['from'],
-        $pair['to'],
+        $pair->balance,
+        $pair->strength->label(),
+        $pair->strengthValue,
+        $pair->distanceValue,
+        $pair->volatilityValue,
+        $hasGit ? (string) (int) round($pair->coChangeRate * 100) : '—',
+        $pair->from,
+        $pair->to,
     ));
 }
 

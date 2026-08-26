@@ -14,7 +14,7 @@ final class BalanceReport
     /** 強度と変動性を高低に分ける境目。4 段階のうち 3 以上を高とみなす。距離は Distance が同じ規則で判定する。 */
     private const HIGH = 3;
 
-    /** @var array<string, array<string, mixed>> */
+    /** @var array<string, Pair> key => Pair。均衡度の低い順 */
     private array $pairs = [];
 
     /** @var array<string, int> */
@@ -68,6 +68,9 @@ final class BalanceReport
             $this->changeKinds = $this->git->moduleChangeKinds($fileToModule);
         }
 
+        // 参照をモジュールの組にまとめる。強度は最も強いもの、代表例は後で選ぶ。
+        /** @var array<string, array{from: string, to: string, strength: Strength, kinds: array<string, int>, references: int, samples: list<array<string, mixed>>}> $collected */
+        $collected = [];
         foreach ($references as $reference) {
             $from = $this->modules->moduleOf($reference->from);
             $to = $this->modules->moduleOf($reference->to);
@@ -76,23 +79,18 @@ final class BalanceReport
             }
 
             $key = $from . ' -> ' . $to;
-            if (!isset($this->pairs[$key])) {
-                $this->pairs[$key] = [
-                    'from' => $from,
-                    'to' => $to,
-                    'strength' => Strength::Contract,
-                    'kinds' => [],
-                    'references' => 0,
-                    'samples' => [],
-                ];
-            }
-
-            $pair = &$this->pairs[$key];
-            $pair['strength'] = $pair['strength']->max($reference->strength);
-            $pair['kinds'][$reference->kind] = ($pair['kinds'][$reference->kind] ?? 0) + 1;
-            ++$pair['references'];
-            // 代表例は強い順に残す。AI や人がその箇所だけを読めるようにするため。
-            $pair['samples'][] = [
+            $entry = $collected[$key] ?? [
+                'from' => $from,
+                'to' => $to,
+                'strength' => Strength::Contract,
+                'kinds' => [],
+                'references' => 0,
+                'samples' => [],
+            ];
+            $entry['strength'] = $entry['strength']->max($reference->strength);
+            $entry['kinds'][$reference->kind] = ($entry['kinds'][$reference->kind] ?? 0) + 1;
+            ++$entry['references'];
+            $entry['samples'][] = [
                 'file' => $this->relative($reference->file),
                 'line' => $reference->line,
                 'kind' => $reference->kind,
@@ -101,45 +99,47 @@ final class BalanceReport
                 'to' => $reference->to,
                 'weight' => $reference->strength->value,
             ];
-            unset($pair);
+            $collected[$key] = $entry;
         }
 
         $dependants = [];
-        foreach ($this->pairs as $pair) {
-            $dependants[$pair['to']][$pair['from']] = true;
+        $modules = [];
+        foreach ($collected as $entry) {
+            $dependants[$entry['to']][$entry['from']] = true;
+            $modules[$entry['from']] = true;
+            $modules[$entry['to']] = true;
         }
-        $moduleCount = count(array_unique(array_merge(
-            array_column($this->pairs, 'from'),
-            array_column($this->pairs, 'to'),
-        )));
+        $moduleCount = count($modules);
 
         $this->inferred = new InferredVolatility(
             $this->volatilityScore,
-            array_map(
-                static fn (array $pair): array => [
-                    'from' => $pair['from'],
-                    'to' => $pair['to'],
-                    'strength' => $pair['strength'],
+            array_values(array_map(
+                static fn (array $entry): array => [
+                    'from' => $entry['from'],
+                    'to' => $entry['to'],
+                    'strength' => $entry['strength'],
                 ],
-                array_values($this->pairs),
-            ),
+                $collected,
+            )),
         );
 
-        foreach ($this->pairs as $key => $pair) {
-            $volatility = $this->volatilityScore[$pair['to']] ?? 1;
-            $coKey = $this->coKey($pair['from'], $pair['to']);
-            $coCommits = $coChanges[$coKey] ?? 0;
-            $base = $this->smallerCommitCount($pair['from'], $pair['to']);
+        $this->pairs = [];
+        foreach ($collected as $key => $entry) {
+            $from = $entry['from'];
+            $to = $entry['to'];
+            $strength = $entry['strength'];
+            $volatility = $this->volatilityScore[$to] ?? 1;
+            $coCommits = $coChanges[$this->coKey($from, $to)] ?? 0;
+            $base = $this->smallerCommitCount($from, $to);
 
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
-            $shared = $moduleCount > 0 && count($dependants[$pair['to']] ?? []) >= $moduleCount * 0.4;
+            $shared = $moduleCount > 0 && count($dependants[$to] ?? []) >= $moduleCount * 0.4;
 
             // 触っている人が分かれていれば、名前空間が近くても調整の労力は上がる。
-            $ownershipOverlap = $this->ownership?->overlap($pair['from'], $pair['to']) ?? 1.0;
-            $distantOwners = $this->ownership?->isDistant($pair['from'], $pair['to']) ?? false;
+            $ownershipOverlap = $this->ownership?->overlap($from, $to) ?? 1.0;
+            $distantOwners = $this->ownership?->isDistant($from, $to) ?? false;
 
-            $distance = Distance::of($this->modules, $pair['from'], $pair['to'], $shared, $distantOwners);
-            $strength = $pair['strength'];
+            $distance = Distance::of($this->modules, $from, $to, $shared, $distantOwners);
 
             $strengthHigh = $strength->value >= self::HIGH;
             $distanceHigh = $distance->isHigh();
@@ -154,41 +154,43 @@ final class BalanceReport
                 default => 'loose-coupling',
             };
 
-            // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
-            $balanced = ($strengthHigh xor $distanceHigh) || !$volatilityHigh;
-
-            $this->pairs[$key]['distance'] = $distance->level;
-            $this->pairs[$key]['shared_kernel'] = $shared;
-            $this->pairs[$key]['ownership_overlap'] = round($ownershipOverlap, 2);
-            $this->pairs[$key]['evolution_ratio'] = $this->evolutionRatio($pair['to']);
-            $this->pairs[$key]['inferred_volatility_from'] = $this->inferred->of($pair['from']);
-            $this->pairs[$key]['volatility_inherited'] = $this->inferred->isInherited($pair['from']);
-            $this->pairs[$key]['distant_owners'] = $distantOwners;
-            $this->pairs[$key]['volatility'] = $volatility;
-            $this->pairs[$key]['quadrant'] = $quadrant;
-            $this->pairs[$key]['balanced'] = $balanced;
-            $this->pairs[$key]['co_changes'] = $coCommits;
-            $this->pairs[$key]['co_change_rate'] = $base > 0 ? $coCommits / $base : 0.0;
             // 原著 10.3 の均衡結合方程式。3 つの次元を 1 から 10 の目盛りに載せて計算する。
             $strengthValue = BalanceEquation::strengthValue($strength);
             $distanceValue = $distance->scale;
             $volatilityValue = BalanceEquation::volatilityValue($volatility);
 
-            $this->pairs[$key]['strength_value'] = $strengthValue;
-            $this->pairs[$key]['distance_value'] = $distanceValue;
-            $this->pairs[$key]['volatility_value'] = $volatilityValue;
-            $this->pairs[$key]['modularity'] = BalanceEquation::modularity($strengthValue, $distanceValue);
-            $this->pairs[$key]['balance'] = BalanceEquation::balance($strengthValue, $distanceValue, $volatilityValue);
-        }
-
-        foreach ($this->pairs as $key => $pair) {
-            $this->pairs[$key]['samples'] = Samples::pick($pair['samples'], 3);
+            $this->pairs[$key] = new Pair(
+                from: $from,
+                to: $to,
+                strength: $strength,
+                kinds: $entry['kinds'],
+                references: $entry['references'],
+                samples: Samples::pick($entry['samples'], 3),
+                distance: $distance->level,
+                sharedKernel: $shared,
+                ownershipOverlap: round($ownershipOverlap, 2),
+                evolutionRatio: $this->evolutionRatio($to),
+                inferredVolatilityFrom: $this->inferred->of($from),
+                volatilityInherited: $this->inferred->isInherited($from),
+                distantOwners: $distantOwners,
+                volatility: $volatility,
+                quadrant: $quadrant,
+                // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
+                balanced: ($strengthHigh xor $distanceHigh) || !$volatilityHigh,
+                coChanges: $coCommits,
+                coChangeRate: $base > 0 ? $coCommits / $base : 0.0,
+                strengthValue: $strengthValue,
+                distanceValue: $distanceValue,
+                volatilityValue: $volatilityValue,
+                modularity: BalanceEquation::modularity($strengthValue, $distanceValue),
+                balance: BalanceEquation::balance($strengthValue, $distanceValue, $volatilityValue),
+            );
         }
 
         // 均衡度が低いほど複雑性に傾いている。低い順に並べる。
-        uasort($this->pairs, static function (array $a, array $b): int {
-            return [$a['balance'], -$b['co_change_rate'], -$b['references']]
-                <=> [$b['balance'], -$a['co_change_rate'], -$a['references']];
+        uasort($this->pairs, static function (Pair $a, Pair $b): int {
+            return [$a->balance, -$b->coChangeRate, -$b->references]
+                <=> [$b->balance, -$a->coChangeRate, -$a->references];
         });
     }
 
@@ -236,16 +238,16 @@ final class BalanceReport
         return ltrim(str_replace(rtrim($this->root, '/'), '', $file), '/');
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return list<Pair> 均衡度の低い順 */
     public function pairs(): array
     {
         return array_values($this->pairs);
     }
 
     /**
-     * 数値の並びからは読み取りにくい 3 つの型を名指しする。
+     * 数値の並びからは読み取りにくい型を名指しする。
      *
-     * @return list<array{type: string, pair: string, detail: string, data: array<string, mixed>}>
+     * @return list<array{type: string, pair: string, detail: string}>
      */
     public function findings(): array
     {
@@ -253,50 +255,47 @@ final class BalanceReport
         $seenMutual = [];
 
         foreach ($this->pairs as $key => $pair) {
-            $reverseKey = $pair['to'] . ' -> ' . $pair['from'];
-            $reverse = $this->pairs[$reverseKey] ?? null;
-            $mutualKey = $this->coKey($pair['from'], $pair['to']);
+            $reverse = $this->pairs[$pair->to . ' -> ' . $pair->from] ?? null;
+            $mutualKey = $this->coKey($pair->from, $pair->to);
             if ($reverse !== null && !isset($seenMutual[$mutualKey])) {
                 $seenMutual[$mutualKey] = true;
                 $findings[] = [
                     'type' => 'mutual',
-                    'pair' => $pair['from'] . ' <-> ' . $pair['to'],
+                    'pair' => $pair->from . ' <-> ' . $pair->to,
                     'detail' => sprintf(
                         '互いに依存している（%s へ %d 箇所 / %s へ %d 箇所）',
-                        $pair['to'],
-                        $pair['references'],
-                        $pair['from'],
-                        $reverse['references'],
+                        $pair->to,
+                        $pair->references,
+                        $pair->from,
+                        $reverse->references,
                     ),
-                    'data' => $pair,
                 ];
             }
 
-            $strength = $pair['strength'];
-            $rate = $pair['co_change_rate'];
+            $strength = $pair->strength;
+            $rate = $pair->coChangeRate;
 
             // 強度と距離が両方高い。原著の COMPLEXITY = STRENGTH AND DISTANCE にあたる。
-            if ($pair['quadrant'] === 'tight-coupling' && !$pair['balanced'] && $pair['references'] >= 20) {
+            if ($pair->quadrant === 'tight-coupling' && !$pair->balanced && $pair->references >= 20) {
                 $findings[] = [
                     'type' => 'tight-coupling',
                     'pair' => $key,
                     'detail' => sprintf(
                         '距離 %d の相手に %s で依存（%d 箇所）。相手はよく変わっている',
-                        $pair['distance'],
+                        $pair->distance,
                         $strength->label(),
-                        $pair['references'],
+                        $pair->references,
                     ),
-                    'data' => $pair,
                 ];
             }
 
             // 自分はあまり変わらないのに、よく変わる相手と強く結びついている組。
-            $ownVolatility = $this->volatilityScore[$pair['from']] ?? 1;
-            $carried = InferredVolatility::carried($strength, $this->volatilityScore[$pair['to']] ?? 1);
+            $ownVolatility = $this->volatilityScore[$pair->from] ?? 1;
+            $carried = InferredVolatility::carried($strength, $pair->volatility);
             if ($carried > $ownVolatility
                 && $strength->value >= 3
                 && $ownVolatility <= 2
-                && $pair['references'] >= 20
+                && $pair->references >= 20
             ) {
                 $findings[] = [
                     'type' => 'inherited-volatility',
@@ -304,29 +303,27 @@ final class BalanceReport
                     'detail' => sprintf(
                         '自分はあまり変わらない（%d）が、よく変わる相手（%d）に %s で依存している',
                         $ownVolatility,
-                        $this->volatilityScore[$pair['to']] ?? 1,
+                        $pair->volatility,
                         $strength->label(),
                     ),
-                    'data' => $pair,
                 ];
             }
 
             // 触っている人が分かれているのに、強く結びついている組。
-            if ($pair['distant_owners'] && $strength->value >= 3 && $pair['references'] >= 20) {
+            if ($pair->distantOwners && $strength->value >= 3 && $pair->references >= 20) {
                 $findings[] = [
                     'type' => 'split-ownership',
                     'pair' => $key,
                     'detail' => sprintf(
                         '%s で %d 箇所つながっているが、触っている人がほとんど重なっていない',
                         $strength->label(),
-                        $pair['references'],
+                        $pair->references,
                     ),
-                    'data' => $pair,
                 ];
             }
 
             // クラス名を文字列で書いている依存。型に現れず、リネームでも追えない。
-            $stringRefs = $pair['kinds']['string-class'] ?? 0;
+            $stringRefs = $pair->kinds['string-class'] ?? 0;
             if ($stringRefs >= 3) {
                 $findings[] = [
                     'type' => 'string-reference',
@@ -335,49 +332,45 @@ final class BalanceReport
                         'クラス名を文字列で書いている箇所が %d 件。型に現れず、名前を変えても追えない',
                         $stringRefs,
                     ),
-                    'data' => $pair,
                 ];
             }
 
             // 強度と距離が両方低い。近くに置かれているのに関係が薄く、原著では低凝集として複雑の側に入る。
-            if ($pair['quadrant'] === 'low-cohesion' && !$pair['balanced'] && $pair['references'] >= 20) {
+            if ($pair->quadrant === 'low-cohesion' && !$pair->balanced && $pair->references >= 20) {
                 $findings[] = [
                     'type' => 'low-cohesion',
                     'pair' => $key,
                     'detail' => sprintf(
                         '距離 %d の近さで %s の依存が %d 箇所。近くに置く理由が弱い',
-                        $pair['distance'],
+                        $pair->distance,
                         $strength->label(),
-                        $pair['references'],
+                        $pair->references,
                     ),
-                    'data' => $pair,
                 ];
             }
 
-            if ($strength->value <= 2 && $rate >= 0.30 && $pair['co_changes'] >= 5) {
+            if ($strength->value <= 2 && $rate >= 0.30 && $pair->coChanges >= 5) {
                 $findings[] = [
                     'type' => 'hidden',
                     'pair' => $key,
                     'detail' => sprintf(
                         '型の上は %s だが、%d 回のコミットで同時に変わっている（%d%%）',
                         $strength->label(),
-                        $pair['co_changes'],
+                        $pair->coChanges,
                         (int) round($rate * 100),
                     ),
-                    'data' => $pair,
                 ];
             }
 
-            if ($strength->value >= 4 && $rate >= 0.20 && $pair['co_changes'] >= 5) {
+            if ($strength->value >= 4 && $rate >= 0.20 && $pair->coChanges >= 5) {
                 $findings[] = [
                     'type' => 'intrusive-and-moving',
                     'pair' => $key,
                     'detail' => sprintf(
                         '内部に踏み込んだ依存が %d 箇所あり、%d%% のコミットで同時に変わっている',
-                        $pair['references'],
+                        $pair->references,
                         (int) round($rate * 100),
                     ),
-                    'data' => $pair,
                 ];
             }
         }
@@ -390,8 +383,8 @@ final class BalanceReport
     {
         $modules = [];
         foreach ($this->pairs as $pair) {
-            $modules[$pair['from']] = true;
-            $modules[$pair['to']] = true;
+            $modules[$pair->from] = true;
+            $modules[$pair->to] = true;
         }
 
         return [
