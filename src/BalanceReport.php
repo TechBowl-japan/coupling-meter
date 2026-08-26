@@ -226,33 +226,9 @@ final class BalanceReport
         }
 
         $counts = array_values($this->moduleCommitCount);
-        if ($counts === []) {
-            return;
-        }
-        sort($counts);
-
         foreach ($this->moduleCommitCount as $module => $count) {
-            $this->volatilityScore[$module] = $this->quartile($counts, $count);
+            $this->volatilityScore[$module] = Volatility::quartile($counts, $count);
         }
-    }
-
-    /** @param list<int> $sorted */
-    private function quartile(array $sorted, int $value): int
-    {
-        $rank = 0;
-        foreach ($sorted as $entry) {
-            if ($entry <= $value) {
-                ++$rank;
-            }
-        }
-        $ratio = $rank / count($sorted);
-
-        return match (true) {
-            $ratio > 0.90 => 4,
-            $ratio > 0.70 => 3,
-            $ratio > 0.40 => 2,
-            default => 1,
-        };
     }
 
     /** 変更の少ない側を分母にする。「片方が変わるとき、もう片方も変わる割合」を見たいため。 */
