@@ -72,18 +72,14 @@ final class GitHistory
     /**
      * ファイルからモジュールへの写像を受け取り、モジュール単位の変更コミット集合を返す。
      *
-     * @param array<string, string> $fileToModule リポジトリ相対パス => モジュール
+     * @param array<string, list<string>> $fileToModules リポジトリ相対パス => モジュール（1 ファイルに複数のこともある）
      * @return array<string, array<string, true>> モジュール => コミット集合
      */
-    public function moduleCommits(array $fileToModule): array
+    public function moduleCommits(array $fileToModules): array
     {
         $result = [];
         foreach ($this->commits as $hash => $files) {
-            foreach ($files as $file) {
-                $module = $fileToModule[$file] ?? null;
-                if ($module === null) {
-                    continue;
-                }
+            foreach ($this->modulesOf($files, $fileToModules) as $module) {
                 $result[$module][$hash] = true;
             }
         }
@@ -92,24 +88,37 @@ final class GitHistory
     }
 
     /**
+     * コミットが触ったファイルから、変更されたモジュールの集合を出す。
+     *
+     * @param list<string> $files
+     * @param array<string, list<string>> $fileToModules
+     * @return list<string>
+     */
+    private function modulesOf(array $files, array $fileToModules): array
+    {
+        $modules = [];
+        foreach ($files as $file) {
+            foreach ($fileToModules[$file] ?? [] as $module) {
+                $modules[$module] = true;
+            }
+        }
+        $modules = array_keys($modules);
+        sort($modules);
+
+        return $modules;
+    }
+
+    /**
      * 同じコミットに現れたモジュールの組を数える。
      *
-     * @param array<string, string> $fileToModule
+     * @param array<string, list<string>> $fileToModules
      * @return array<string, int> "A|B" => 共起コミット数
      */
-    public function coChanges(array $fileToModule): array
+    public function coChanges(array $fileToModules): array
     {
         $pairs = [];
         foreach ($this->commits as $files) {
-            $modules = [];
-            foreach ($files as $file) {
-                $module = $fileToModule[$file] ?? null;
-                if ($module !== null) {
-                    $modules[$module] = true;
-                }
-            }
-            $modules = array_keys($modules);
-            sort($modules);
+            $modules = $this->modulesOf($files, $fileToModules);
             $count = count($modules);
             for ($i = 0; $i < $count; ++$i) {
                 for ($j = $i + 1; $j < $count; ++$j) {
@@ -125,10 +134,10 @@ final class GitHistory
     /**
      * モジュールごとに、誰が何回そこを変更したかを数える。
      *
-     * @param array<string, string> $fileToModule
+     * @param array<string, list<string>> $fileToModules
      * @return array<string, array<string, int>> モジュール => 著者 => コミット数
      */
-    public function moduleAuthors(array $fileToModule): array
+    public function moduleAuthors(array $fileToModules): array
     {
         $result = [];
         foreach ($this->commits as $hash => $files) {
@@ -136,14 +145,7 @@ final class GitHistory
             if ($author === '') {
                 continue;
             }
-            $modules = [];
-            foreach ($files as $file) {
-                $module = $fileToModule[$file] ?? null;
-                if ($module !== null) {
-                    $modules[$module] = true;
-                }
-            }
-            foreach (array_keys($modules) as $module) {
+            foreach ($this->modulesOf($files, $fileToModules) as $module) {
                 $result[$module][$author] = ($result[$module][$author] ?? 0) + 1;
             }
         }
@@ -154,22 +156,15 @@ final class GitHistory
     /**
      * モジュールごとに、変更の種類を数える。
      *
-     * @param array<string, string> $fileToModule
+     * @param array<string, list<string>> $fileToModules
      * @return array<string, array<string, int>> モジュール => 種類のラベル => 件数
      */
-    public function moduleChangeKinds(array $fileToModule): array
+    public function moduleChangeKinds(array $fileToModules): array
     {
         $result = [];
         foreach ($this->commits as $hash => $files) {
             $kind = ChangeKind::fromSubject($this->subjects[$hash] ?? '');
-            $modules = [];
-            foreach ($files as $file) {
-                $module = $fileToModule[$file] ?? null;
-                if ($module !== null) {
-                    $modules[$module] = true;
-                }
-            }
-            foreach (array_keys($modules) as $module) {
+            foreach ($this->modulesOf($files, $fileToModules) as $module) {
                 $result[$module][$kind->name] = ($result[$module][$kind->name] ?? 0) + 1;
             }
         }
@@ -177,8 +172,9 @@ final class GitHistory
         return $result;
     }
 
+    /** 解析対象の PHP ファイルを 1 つ以上触ったコミットの数。 */
     public function commitCount(): int
     {
-        return count($this->commits);
+        return count(array_filter($this->commits, static fn (array $files): bool => $files !== []));
     }
 }

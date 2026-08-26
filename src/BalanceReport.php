@@ -51,10 +51,14 @@ final class BalanceReport
         $this->classCount = count($index);
         $this->referenceCount = count($references);
 
+        // 1 ファイルに複数モジュールのクラスが同居していれば、そのファイルの変更はどのモジュールにも数える。
         $fileToModule = [];
         foreach ($index as $fqcn => $entry) {
-            $relative = ltrim(str_replace(rtrim($this->root, '/'), '', $entry['file']), '/');
-            $fileToModule[$relative] = $this->modules->moduleOf($fqcn);
+            $relative = $this->relative($entry['file']);
+            $module = $this->modules->moduleOf($fqcn);
+            if (!in_array($module, $fileToModule[$relative] ?? [], true)) {
+                $fileToModule[$relative][] = $module;
+            }
         }
 
         $this->buildVolatility($fileToModule);
@@ -178,16 +182,7 @@ final class BalanceReport
         }
 
         foreach ($this->pairs as $key => $pair) {
-            $samples = $pair['samples'];
-            usort($samples, static fn (array $a, array $b): int => $b['weight'] <=> $a['weight']);
-            $this->pairs[$key]['samples'] = array_map(
-                static function (array $sample): array {
-                    unset($sample['weight']);
-
-                    return $sample;
-                },
-                array_slice($samples, 0, 3),
-            );
+            $this->pairs[$key]['samples'] = Samples::pick($pair['samples'], 3);
         }
 
         // 均衡度が低いほど複雑性に傾いている。低い順に並べる。
@@ -197,7 +192,7 @@ final class BalanceReport
         });
     }
 
-    /** @param array<string, string> $fileToModule */
+    /** @param array<string, list<string>> $fileToModule */
     private function buildVolatility(array $fileToModule): void
     {
         if ($this->git === null) {

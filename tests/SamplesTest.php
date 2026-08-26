@@ -49,7 +49,8 @@ final class SamplesTest extends TestCase
             self::sample('B', 2, 3),
         ], 3);
 
-        $this->assertSame(['A', 'B', 'A'], array_column($picked, 'to'));
+        // 相手が尽きたら残りで埋める。最終的な並びは強い順
+        $this->assertSame(['A', 'A', 'B'], array_column($picked, 'to'));
     }
 
     public function testWeightIsStripped(): void
