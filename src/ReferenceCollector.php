@@ -122,8 +122,12 @@ final class ReferenceCollector extends NodeVisitorAbstract
 
     private function enterClassLike(Node\Stmt\ClassLike $node): void
     {
-        // 無名クラスは名前を持たないので、参照元としては扱わない。中身は外側のクラスにも帰属させない。
-        $this->currentClass = $node->namespacedName?->toString();
+        // 無名クラスは名前を持たない。囲んでいるクラスがその継承や trait を知っているので、そちらに帰属させる。
+        // トップレベルの無名クラス（return new class extends Migration など）は帰属先がないので捨てる。
+        $named = $node->namespacedName?->toString();
+        if ($named !== null) {
+            $this->currentClass = $named;
+        }
         $this->propertyTypes = [];
         $this->variableTypes = [];
 
