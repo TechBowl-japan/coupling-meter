@@ -357,15 +357,17 @@ final class ReferenceCollector extends NodeVisitorAbstract
     /**
      * コンテナ呼び出しの第 1 引数からクラス名を取り出す。見つけた引数は消費済みにする。
      *
-     * @param list<Node\Arg> $args
+     * @param array<Node\Arg> $args
      */
     private function classConstArgument(array $args): ?string
     {
         foreach ($args as $arg) {
-            if ($arg->value instanceof Node\Expr\ClassConstFetch && $arg->value->class instanceof Node\Name) {
-                $this->consumed->attach($arg->value);
+            $value = $arg->value;
+            if ($value instanceof Node\Expr\ClassConstFetch && $value->class instanceof Node\Name) {
+                $class = $value->class;
+                $this->consumed->attach($value);
 
-                return ltrim($arg->value->class->toString(), '\\');
+                return ltrim($class->toString(), '\\');
             }
             if ($arg->value instanceof Node\Scalar\String_) {
                 $this->consumed->attach($arg->value);

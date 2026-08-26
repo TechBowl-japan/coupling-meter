@@ -137,7 +137,7 @@ coupling-meter /path/to/project
 ## 開発
 
 ```bash
-vendor/bin/phpunit
+composer check   # phpstan (level 8) と phpunit
 ```
 
 `tests/fixtures/` に判定を確かめるための小さなプロジェクトを置いてある。

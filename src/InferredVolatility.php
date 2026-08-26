@@ -37,7 +37,7 @@ final class InferredVolatility
         foreach ($dependencies as $dependency) {
             $from = $dependency['from'];
             $to = $dependency['to'];
-            $transfer = self::TRANSFER[$dependency['strength']->name] ?? 0.0;
+            $transfer = self::TRANSFER[$dependency['strength']->name];
             $carried = (int) floor(($observed[$to] ?? 0) * $transfer);
 
             $own = $observed[$from] ?? 0;
@@ -54,7 +54,7 @@ final class InferredVolatility
     /** その強度の依存を通して、相手の変動性がどれだけ伝わるか。 */
     public static function carried(Strength $strength, int $targetVolatility): int
     {
-        return (int) floor($targetVolatility * (self::TRANSFER[$strength->name] ?? 0.0));
+        return (int) floor($targetVolatility * self::TRANSFER[$strength->name]);
     }
 
     public function of(string $module): int
