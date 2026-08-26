@@ -31,6 +31,11 @@ final class ScopeController
 
         return $this->users->find(1) ?? $factory->create('after-closure');
     }
+
+    public function resolveByString(): object
+    {
+        return $this->container->make('Fixture\\Domain\\UserFactory');
+    }
 }
 
 function scope_helper(): void

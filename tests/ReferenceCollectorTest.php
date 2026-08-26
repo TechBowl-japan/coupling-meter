@@ -121,4 +121,17 @@ final class ReferenceCollectorTest extends TestCase
         $this->assertSame(1, $this->countReferences('Fixture\Http\ScopeController', 'Fixture\Domain\UserFactory', 'method-call'));
         $this->assertSame(1, $this->countReferences('Fixture\Http\ScopeController', 'Fixture\Domain\UserRepository', 'method-call'));
     }
+
+    public function testContainerResolutionIsCountedOnce(): void
+    {
+        // app(UserFactory::class) は container の 1 件であり、引数の ::class を model として重ねて数えない
+        $this->assertSame(1, $this->countReferences('Fixture\\Http\\UserController', 'Fixture\\Domain\\UserFactory', 'container'));
+        $this->assertSame(0, $this->countReferences('Fixture\\Http\\UserController', 'Fixture\\Domain\\UserFactory', 'class-const'));
+    }
+
+    public function testContainerResolutionByStringIsCountedOnce(): void
+    {
+        $this->assertSame(1, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Domain\\UserFactory', 'container'));
+        $this->assertSame(0, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Domain\\UserFactory', 'string-class'));
+    }
 }
