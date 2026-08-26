@@ -142,6 +142,7 @@ if ($findings !== []) {
         'tight-coupling' => '強度も距離も高い',
         'low-cohesion' => '近いのに関係が薄い',
         'hidden' => '型に出ない結合',
+        'string-reference' => '文字列で書かれた依存',
         'intrusive-and-moving' => '踏み込んだ依存が動いている',
     ];
     fwrite(STDOUT, "\n" . $bold('指摘') . "\n");

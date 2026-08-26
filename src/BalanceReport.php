@@ -259,6 +259,20 @@ final class BalanceReport
                 ];
             }
 
+            // クラス名を文字列で書いている依存。型に現れず、リネームでも追えない。
+            $stringRefs = $pair['kinds']['string-class'] ?? 0;
+            if ($stringRefs >= 3) {
+                $findings[] = [
+                    'type' => 'string-reference',
+                    'pair' => $key,
+                    'detail' => sprintf(
+                        'クラス名を文字列で書いている箇所が %d 件。型に現れず、名前を変えても追えない',
+                        $stringRefs,
+                    ),
+                    'data' => $pair,
+                ];
+            }
+
             // 強度と距離が両方低い。近くに置かれているのに関係が薄く、原著では低凝集として複雑の側に入る。
             if ($pair['quadrant'] === 'low-cohesion' && !$pair['balanced'] && $pair['references'] >= 20) {
                 $findings[] = [
