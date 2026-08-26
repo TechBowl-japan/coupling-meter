@@ -13,6 +13,12 @@ use PhpParser\NodeVisitorAbstract;
  */
 final class ReferenceCollector extends NodeVisitorAbstract
 {
+    /** コンテナに生成を任せる関数。Laravel と Symfony でよく使われるもの。 */
+    private const CONTAINER_FUNCTIONS = ['app', 'resolve'];
+
+    /** コンテナのメソッド。$this->app->make(Foo::class) のような形。 */
+    private const CONTAINER_METHODS = ['make', 'makewith', 'bind', 'singleton', 'instance'];
+
     /** @var list<Reference> */
     private array $references = [];
 
@@ -103,7 +109,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
 
             if ($stmt instanceof Node\Stmt\Property) {
                 foreach ($this->typeNames($stmt->type) as $type) {
-                    $this->add($type, Strength::Model, 'property-type', $stmt->getLine());
+                    $this->addType($type, 'property-type', $stmt->getLine());
                     foreach ($stmt->props as $prop) {
                         $this->propertyTypes[$prop->name->toString()] = $type;
                     }
@@ -118,7 +124,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
 
         foreach ($node->getParams() as $param) {
             foreach ($this->typeNames($param->type) as $type) {
-                $this->add($type, Strength::Model, 'param-type', $param->getLine());
+                $this->addType($type, 'param-type', $param->getLine());
                 if ($param->var instanceof Node\Expr\Variable && is_string($param->var->name)) {
                     $this->variableTypes[$param->var->name] = $type;
                 }
@@ -130,7 +136,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
         }
 
         foreach ($this->typeNames($node->getReturnType()) as $type) {
-            $this->add($type, Strength::Model, 'return-type', $node->getLine());
+            $this->addType($type, 'return-type', $node->getLine());
         }
     }
 
@@ -160,8 +166,44 @@ final class ReferenceCollector extends NodeVisitorAbstract
             return;
         }
 
+        if ($node instanceof Node\Attribute) {
+            $this->addType($node->name->toString(), 'attribute', $line);
+
+            return;
+        }
+
+        // コンテナ経由の解決。相手の存在と、生成を任せられることを知っている。
+        if ($node instanceof Node\Expr\FuncCall
+            && $node->name instanceof Node\Name
+            && in_array(strtolower($node->name->toString()), self::CONTAINER_FUNCTIONS, true)
+        ) {
+            $target = $this->classConstArgument($node->getArgs());
+            if ($target !== null) {
+                $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, 'container', $line);
+
+                return;
+            }
+        }
+
+        if ($node instanceof Node\Expr\MethodCall
+            && $node->name instanceof Node\Identifier
+            && in_array(strtolower($node->name->toString()), self::CONTAINER_METHODS, true)
+        ) {
+            $target = $this->classConstArgument($node->getArgs());
+            if ($target !== null) {
+                $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, 'container', $line);
+            }
+        }
+
+        // 文字列で書かれたクラス名。型としては現れず、リネームでも追えない。
+        if ($node instanceof Node\Scalar\String_) {
+            $this->addType($node->value, 'string-class', $line);
+
+            return;
+        }
+
         if ($node instanceof Node\Expr\ClassConstFetch && $node->class instanceof Node\Name) {
-            $this->add($node->class->toString(), Strength::Model, 'class-const', $line);
+            $this->addType($node->class->toString(), 'class-const', $line);
 
             return;
         }
@@ -231,6 +273,30 @@ final class ReferenceCollector extends NodeVisitorAbstract
         }
 
         return [];
+    }
+
+    /**
+     * 型としての参照を足す。相手が interface や抽象クラスなら契約止まりとみなす。
+     */
+    private function addType(string $type, string $kind, int $line): void
+    {
+        $target = ltrim($type, '\\');
+        $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Model, $kind, $line);
+    }
+
+    /** @param list<Node\Arg> $args */
+    private function classConstArgument(array $args): ?string
+    {
+        foreach ($args as $arg) {
+            if ($arg->value instanceof Node\Expr\ClassConstFetch && $arg->value->class instanceof Node\Name) {
+                return ltrim($arg->value->class->toString(), '\\');
+            }
+            if ($arg->value instanceof Node\Scalar\String_) {
+                return ltrim($arg->value->value, '\\');
+            }
+        }
+
+        return null;
     }
 
     private function isAbstraction(string $fqcn): bool
