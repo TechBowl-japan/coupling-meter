@@ -165,11 +165,30 @@ final class BalanceReport
             // 順位づけのための独自の指標。原著は二値の規則を示しており、この式は本ツールの実装。
             // 強度と距離が釣り合っていないほど、そして相手が変わるほど大きくなる。
             $this->pairs[$key]['pain'] = (4 - abs($strength->value - $distance)) * $volatility;
+
+            // 原著 10.3 の均衡結合方程式。3 つの次元を 1 から 10 の目盛りに載せて計算する。
+            $gap = $this->modules->hierarchyGap($pair['from'], $pair['to']);
+            if ($shared) {
+                $gap = max(0, $gap - 1);
+            }
+            if ($distantOwners) {
+                ++$gap;
+            }
+            $strengthValue = BalanceEquation::strengthValue($strength);
+            $distanceValue = BalanceEquation::distanceValue($gap);
+            $volatilityValue = BalanceEquation::volatilityValue($volatility);
+
+            $this->pairs[$key]['strength_value'] = $strengthValue;
+            $this->pairs[$key]['distance_value'] = $distanceValue;
+            $this->pairs[$key]['volatility_value'] = $volatilityValue;
+            $this->pairs[$key]['modularity'] = BalanceEquation::modularity($strengthValue, $distanceValue);
+            $this->pairs[$key]['balance'] = BalanceEquation::balance($strengthValue, $distanceValue, $volatilityValue);
         }
 
+        // 均衡度が低いほど複雑性に傾いている。低い順に並べる。
         uasort($this->pairs, static function (array $a, array $b): int {
-            return [$b['pain'], $b['co_change_rate'], $b['references']]
-                <=> [$a['pain'], $a['co_change_rate'], $a['references']];
+            return [$a['balance'], -$b['co_change_rate'], -$b['references']]
+                <=> [$b['balance'], -$a['co_change_rate'], -$a['references']];
         });
     }
 

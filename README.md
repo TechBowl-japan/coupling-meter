@@ -34,11 +34,22 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 
 3 以上を高、2 以下を低として規則に入れ、象限とバランスの成否を出す。
 
-順位づけには独自の指標を使う。原著は二値の規則を示しており、この式は原著のものではない。
+順位づけには原著 10.3 の均衡結合方程式を使う。3 つの次元を 1 から 10 の目盛りに載せて計算する。
 
 ```
-順位 = (4 - |strength - distance|) × volatility
+モジュール性 = |strength - distance| + 1
+均衡度       = max(|strength - distance|, 10 - volatility) + 1
 ```
+
+均衡度が低いほど複雑性に傾いている。目盛りは原著の割り当てに従う。
+
+| 次元 | 目盛り |
+|---|---|
+| strength | contract=1、model=3、functional=8、intrusive=10 |
+| distance | 同じ名前空間=2、離れるほど 3 から 7（ライブラリ以上は対象外） |
+| volatility | git の分位を 1、3、6、10 に写す |
+
+著者は「これは正確な科学ではない」と断っている。数値範囲は目的に応じて調整してよい。
 
 ## 強度の判定
 
