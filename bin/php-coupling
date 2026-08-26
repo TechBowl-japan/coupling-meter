@@ -143,6 +143,7 @@ if ($findings !== []) {
         'low-cohesion' => '近いのに関係が薄い',
         'hidden' => '型に出ない結合',
         'string-reference' => '文字列で書かれた依存',
+        'split-ownership' => '触っている人が分かれている',
         'intrusive-and-moving' => '踏み込んだ依存が動いている',
     ];
     fwrite(STDOUT, "\n" . $bold('指摘') . "\n");
@@ -151,5 +152,6 @@ if ($findings !== []) {
     }
 }
 
-fwrite(STDOUT, "\n" . $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
+fwrite(STDOUT, "\n" . $dim('DIST は名前空間の共通の祖先から出し、触っている人が分かれている組は 1 段遠くしている。') . "\n");
+fwrite(STDOUT, $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
 fwrite(STDOUT, $dim('QUADRANT の ! はバランスが崩れている組。BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY による。') . "\n\n");
