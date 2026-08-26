@@ -10,6 +10,9 @@ final class GitHistory
     /** @var array<string, list<string>> コミットハッシュ => 変更ファイル（リポジトリ相対） */
     private array $commits = [];
 
+    /** @var array<string, string> コミットハッシュ => 著者名 */
+    private array $authors = [];
+
     public function __construct(
         private readonly string $root,
         private readonly string $since = '12 months ago',
@@ -24,7 +27,7 @@ final class GitHistory
         $this->prefix = trim((string) $prefix);
 
         $command = sprintf(
-            'git -C %s log --since=%s --no-merges --name-only --pretty=format:__C__%%H 2>/dev/null',
+            'git -C %s log --since=%s --no-merges --name-only --pretty=format:__C__%%H%%x09%%an 2>/dev/null',
             escapeshellarg($this->root),
             escapeshellarg($this->since),
         );
@@ -40,8 +43,10 @@ final class GitHistory
                 continue;
             }
             if (str_starts_with($line, '__C__')) {
-                $current = substr($line, 5);
+                [$hash, $author] = array_pad(explode("\t", substr($line, 5), 2), 2, '');
+                $current = $hash;
                 $this->commits[$current] = [];
+                $this->authors[$current] = $author;
 
                 continue;
             }
@@ -110,6 +115,35 @@ final class GitHistory
         }
 
         return $pairs;
+    }
+
+    /**
+     * モジュールごとに、誰が何回そこを変更したかを数える。
+     *
+     * @param array<string, string> $fileToModule
+     * @return array<string, array<string, int>> モジュール => 著者 => コミット数
+     */
+    public function moduleAuthors(array $fileToModule): array
+    {
+        $result = [];
+        foreach ($this->commits as $hash => $files) {
+            $author = $this->authors[$hash] ?? '';
+            if ($author === '') {
+                continue;
+            }
+            $modules = [];
+            foreach ($files as $file) {
+                $module = $fileToModule[$file] ?? null;
+                if ($module !== null) {
+                    $modules[$module] = true;
+                }
+            }
+            foreach (array_keys($modules) as $module) {
+                $result[$module][$author] = ($result[$module][$author] ?? 0) + 1;
+            }
+        }
+
+        return $result;
     }
 
     public function commitCount(): int

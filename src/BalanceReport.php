@@ -23,6 +23,8 @@ final class BalanceReport
     /** @var array<string, int> */
     private array $moduleCommitCount = [];
 
+    private ?Ownership $ownership = null;
+
     private int $classCount = 0;
 
     private int $referenceCount = 0;
@@ -52,6 +54,9 @@ final class BalanceReport
 
         $this->buildVolatility($fileToModule);
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
+        if ($this->git !== null) {
+            $this->ownership = new Ownership($this->git->moduleAuthors($fileToModule));
+        }
 
         foreach ($references as $reference) {
             $from = $this->modules->moduleOf($reference->from);
@@ -101,6 +106,14 @@ final class BalanceReport
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
             $shared = $moduleCount > 0 && count($dependants[$pair['to']] ?? []) >= $moduleCount * 0.4;
             $distance = $shared ? max(1, $pair['distance'] - 1) : $pair['distance'];
+
+            // 触っている人が分かれていれば、名前空間が近くても調整の労力は上がる。
+            $ownershipOverlap = $this->ownership?->overlap($pair['from'], $pair['to']) ?? 1.0;
+            $distantOwners = $this->ownership?->isDistant($pair['from'], $pair['to']) ?? false;
+            if ($distantOwners) {
+                $distance = min(4, $distance + 1);
+            }
+
             $strength = $pair['strength'];
 
             $strengthHigh = $strength->value >= self::HIGH;
@@ -121,6 +134,8 @@ final class BalanceReport
 
             $this->pairs[$key]['distance'] = $distance;
             $this->pairs[$key]['shared_kernel'] = $shared;
+            $this->pairs[$key]['ownership_overlap'] = round($ownershipOverlap, 2);
+            $this->pairs[$key]['distant_owners'] = $distantOwners;
             $this->pairs[$key]['volatility'] = $volatility;
             $this->pairs[$key]['quadrant'] = $quadrant;
             $this->pairs[$key]['balanced'] = $balanced;
@@ -252,6 +267,20 @@ final class BalanceReport
                     'detail' => sprintf(
                         '距離 %d の相手に %s で依存（%d 箇所）。相手はよく変わっている',
                         $pair['distance'],
+                        $strength->label(),
+                        $pair['references'],
+                    ),
+                    'data' => $pair,
+                ];
+            }
+
+            // 触っている人が分かれているのに、強く結びついている組。
+            if ($pair['distant_owners'] && $strength->value >= 3 && $pair['references'] >= 20) {
+                $findings[] = [
+                    'type' => 'split-ownership',
+                    'pair' => $key,
+                    'detail' => sprintf(
+                        '%s で %d 箇所つながっているが、触っている人がほとんど重なっていない',
                         $strength->label(),
                         $pair['references'],
                     ),
