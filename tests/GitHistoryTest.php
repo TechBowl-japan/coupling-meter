@@ -19,6 +19,7 @@ final class GitHistoryTest extends TestCase
         $this->git('config user.email test@example.com');
         $this->git('config user.name tester');
         $this->git('config core.quotepath true');
+        $this->git('config commit.gpgsign false');
 
         file_put_contents($this->repo . '/app/顧客/Customer.php', '<?php');
         file_put_contents($this->repo . '/app/Order.php', '<?php');

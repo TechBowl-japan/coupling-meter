@@ -443,10 +443,4 @@ final class BalanceReport
     {
         return $this->changeKinds;
     }
-
-    /** @return array<string, int> */
-    public function moduleCommitCounts(): array
-    {
-        return $this->moduleCommitCount;
-    }
 }

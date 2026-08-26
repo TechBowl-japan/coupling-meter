@@ -32,6 +32,14 @@ final class ScopeController
         return $this->users->find(1) ?? $factory->create('after-closure');
     }
 
+    public function anonymousListener(): object
+    {
+        // 無名クラスが継承・取り込む相手は、囲んでいるこのクラスが知っている
+        return new class extends \Fixture\Domain\LegacyBase {
+            use \Fixture\Support\Audit;
+        };
+    }
+
     public function resolveByString(): object
     {
         return $this->container->make('Fixture\\Domain\\UserFactory');

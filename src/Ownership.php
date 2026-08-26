@@ -63,10 +63,4 @@ final class Ownership
     {
         return $this->overlap($a, $b) < self::DISTANT_THRESHOLD;
     }
-
-    /** @return list<string> */
-    public function ownersOf(string $module): array
-    {
-        return $this->owners[$module] ?? [];
-    }
 }
