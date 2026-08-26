@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling;
+namespace TechBowl\PhpCoupling;
 
 /**
  * モジュールを誰が触ってきたかを持つ。

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling;
+namespace TechBowl\PhpCoupling;
 
 /**
  * コミットが何の変更かを分ける。

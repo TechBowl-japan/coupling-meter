@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling\Tests;
+namespace TechBowl\PhpCoupling\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Valbeat\PhpCoupling\InferredVolatility;
-use Valbeat\PhpCoupling\Strength;
+use TechBowl\PhpCoupling\InferredVolatility;
+use TechBowl\PhpCoupling\Strength;
 
 final class InferredVolatilityTest extends TestCase
 {

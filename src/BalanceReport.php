@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling;
+namespace TechBowl\PhpCoupling;
 
 /**
  * 参照と履歴を突き合わせ、モジュールの組ごとに結合バランスを組み立てる。

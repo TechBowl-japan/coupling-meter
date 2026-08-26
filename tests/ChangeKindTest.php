@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling\Tests;
+namespace TechBowl\PhpCoupling\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Valbeat\PhpCoupling\ChangeKind;
+use TechBowl\PhpCoupling\ChangeKind;
 
 final class ChangeKindTest extends TestCase
 {

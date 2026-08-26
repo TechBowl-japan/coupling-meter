@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling;
+namespace TechBowl\PhpCoupling;
 
 /**
  * Vlad Khononov, "Balancing Coupling in Software Design" の統合強度。

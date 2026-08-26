@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Valbeat\PhpCoupling\Tests;
+namespace TechBowl\PhpCoupling\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Valbeat\PhpCoupling\Analyzer;
-use Valbeat\PhpCoupling\Reference;
-use Valbeat\PhpCoupling\Strength;
+use TechBowl\PhpCoupling\Analyzer;
+use TechBowl\PhpCoupling\Reference;
+use TechBowl\PhpCoupling\Strength;
 
 final class ReferenceCollectorTest extends TestCase
 {
