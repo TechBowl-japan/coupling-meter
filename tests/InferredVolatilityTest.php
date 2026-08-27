@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\InferredVolatility;
-use TechBowl\CouplingMeter\Strength;
+use Techtrain\CouplingMeter\InferredVolatility;
+use Techtrain\CouplingMeter\Strength;
 
 final class InferredVolatilityTest extends TestCase
 {

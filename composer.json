@@ -1,5 +1,5 @@
 {
-    "name": "techbowl-japan/coupling-meter",
+    "name": "techtrain/coupling-meter",
     "description": "Measure coupling balance (strength, distance, volatility) of a PHP project",
     "type": "library",
     "license": "MIT",
@@ -19,7 +19,7 @@
     },
     "autoload": {
         "psr-4": {
-            "TechBowl\\CouplingMeter\\": "src/"
+            "Techtrain\\CouplingMeter\\": "src/"
         }
     },
     "bin": [
@@ -36,7 +36,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "TechBowl\\CouplingMeter\\Tests\\": "tests/"
+            "Techtrain\\CouplingMeter\\Tests\\": "tests/"
         }
     }
 }

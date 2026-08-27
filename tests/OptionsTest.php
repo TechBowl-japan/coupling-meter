@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\Options;
+use Techtrain\CouplingMeter\Options;
 
 final class OptionsTest extends TestCase
 {

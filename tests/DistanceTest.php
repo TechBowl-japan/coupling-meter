@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\Distance;
-use TechBowl\CouplingMeter\ModuleMap;
+use Techtrain\CouplingMeter\Distance;
+use Techtrain\CouplingMeter\ModuleMap;
 
 final class DistanceTest extends TestCase
 {

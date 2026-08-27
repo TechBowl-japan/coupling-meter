@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\GitHistory;
+use Techtrain\CouplingMeter\GitHistory;
 
 final class GitHistoryTest extends TestCase
 {

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\BalanceEquation;
-use TechBowl\CouplingMeter\Strength;
+use Techtrain\CouplingMeter\BalanceEquation;
+use Techtrain\CouplingMeter\Strength;
 
 final class BalanceEquationTest extends TestCase
 {
