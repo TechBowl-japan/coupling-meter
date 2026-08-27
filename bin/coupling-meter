@@ -132,7 +132,11 @@ fwrite(STDOUT, sprintf(
     $stats['references'],
     $stats['modules'],
     $stats['pairs'],
-    $hasGit ? (string) $stats['commits'] : '—（git 履歴なし）',
+    match (true) {
+        $hasGit => (string) $stats['commits'],
+        $git->isRepository() => '—（期間内に PHP を触ったコミットなし。--since を広げると出る）',
+        default => '—（git 履歴なし）',
+    },
 ));
 
 $unbalanced = count(array_filter($pairs, static fn (Pair $pair): bool => !$pair->balanced));

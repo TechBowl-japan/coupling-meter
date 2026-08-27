@@ -82,6 +82,10 @@ final class Options
             throw new \InvalidArgumentException("不明なオプションです: --{$name}");
         }
 
+        if (isset($flags['json'], $flags['samples'])) {
+            throw new \InvalidArgumentException('--json と --samples は同時に指定できません');
+        }
+
         $excludes = self::DEFAULT_EXCLUDES;
         if (isset($values['exclude'])) {
             $excludes = [...$excludes, ...self::list($values['exclude'])];

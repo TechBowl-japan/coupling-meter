@@ -14,6 +14,16 @@ final class BalanceReport
     /** 強度と変動性を高低に分ける境目。4 段階のうち 3 以上を高とみなす。距離は Distance が同じ規則で判定する。 */
     private const HIGH = 3;
 
+    /**
+     * 指摘を出す閾値。README の「指摘の種類」と対応させる。
+     * 参照 1 箇所の依存でも組としては上位に来るが、指摘として名指しするのはある程度の量があるものに限る。
+     */
+    private const MIN_REFERENCES = 20;
+    private const MIN_STRING_REFERENCES = 3;
+    private const MIN_CO_CHANGES = 5;
+    private const HIDDEN_CO_CHANGE_RATE = 0.30;
+    private const INTRUSIVE_CO_CHANGE_RATE = 0.20;
+
     /** @var array<string, Pair> key => Pair。均衡度の低い順 */
     private array $pairs = [];
 
@@ -295,7 +305,7 @@ final class BalanceReport
             $rate = $pair->coChangeRate;
 
             // 強度と距離が両方高い。原著の COMPLEXITY = STRENGTH AND DISTANCE にあたる。
-            if ($pair->quadrant === 'tight-coupling' && !$pair->balanced && $pair->references >= 20) {
+            if ($pair->quadrant === 'tight-coupling' && !$pair->balanced && $pair->references >= self::MIN_REFERENCES) {
                 $findings[] = [
                     'type' => 'tight-coupling',
                     'pair' => $key,
@@ -314,7 +324,7 @@ final class BalanceReport
             if ($carried > $ownVolatility
                 && $strength->value >= 3
                 && $ownVolatility <= 2
-                && $pair->references >= 20
+                && $pair->references >= self::MIN_REFERENCES
             ) {
                 $findings[] = [
                     'type' => 'inherited-volatility',
@@ -329,7 +339,7 @@ final class BalanceReport
             }
 
             // 触っている人が分かれているのに、強く結びついている組。
-            if ($pair->distantOwners && $strength->value >= 3 && $pair->references >= 20) {
+            if ($pair->distantOwners && $strength->value >= 3 && $pair->references >= self::MIN_REFERENCES) {
                 $findings[] = [
                     'type' => 'split-ownership',
                     'pair' => $key,
@@ -343,7 +353,7 @@ final class BalanceReport
 
             // クラス名を文字列で書いている依存。型に現れず、リネームでも追えない。
             $stringRefs = $pair->kinds['string-class'] ?? 0;
-            if ($stringRefs >= 3) {
+            if ($stringRefs >= self::MIN_STRING_REFERENCES) {
                 $findings[] = [
                     'type' => 'string-reference',
                     'pair' => $key,
@@ -355,7 +365,7 @@ final class BalanceReport
             }
 
             // 強度と距離が両方低い。近くに置かれているのに関係が薄く、原著では低凝集として複雑の側に入る。
-            if ($pair->quadrant === 'low-cohesion' && !$pair->balanced && $pair->references >= 20) {
+            if ($pair->quadrant === 'low-cohesion' && !$pair->balanced && $pair->references >= self::MIN_REFERENCES) {
                 $findings[] = [
                     'type' => 'low-cohesion',
                     'pair' => $key,
@@ -368,7 +378,7 @@ final class BalanceReport
                 ];
             }
 
-            if ($strength->value <= 2 && $rate >= 0.30 && $pair->coChanges >= 5) {
+            if ($strength->value <= 2 && $rate >= self::HIDDEN_CO_CHANGE_RATE && $pair->coChanges >= self::MIN_CO_CHANGES) {
                 $findings[] = [
                     'type' => 'hidden',
                     'pair' => $key,
@@ -381,7 +391,7 @@ final class BalanceReport
                 ];
             }
 
-            if ($strength->value >= 4 && $rate >= 0.20 && $pair->coChanges >= 5) {
+            if ($strength->value >= 4 && $rate >= self::INTRUSIVE_CO_CHANGE_RATE && $pair->coChanges >= self::MIN_CO_CHANGES) {
                 $findings[] = [
                     'type' => 'intrusive-and-moving',
                     'pair' => $key,

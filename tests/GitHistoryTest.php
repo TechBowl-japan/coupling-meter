@@ -80,13 +80,19 @@ final class GitHistoryTest extends TestCase
         }
     }
 
-    public function testLoadIsFalseWhenNoCommitTouchesPhpInTheWindow(): void
+    public function testLoadIsFalseWhenTheRepositoryHasNoUsableCommits(): void
     {
-        // リポジトリ自体はあるが、期間内に PHP を触ったコミットがない
-        $history = new GitHistory($this->repo, '1 second ago');
-        $this->git('commit -q --allow-empty --date="2000-01-01T00:00:00" -m "chore: old"');
+        // リポジトリ自体はあるが、PHP を触ったコミットがない。bin はこれを「git 履歴なし」と区別して表示する
+        $empty = sys_get_temp_dir() . '/coupling-meter-empty-' . bin2hex(random_bytes(4));
+        mkdir($empty);
+        exec(sprintf('git -C %s init -q', escapeshellarg($empty)));
+        try {
+            $history = new GitHistory($empty, '10 years ago');
 
-        $this->assertFalse($history->load());
-        $this->assertTrue($history->isRepository());
+            $this->assertFalse($history->load());
+            $this->assertTrue($history->isRepository());
+        } finally {
+            exec(sprintf('rm -rf %s', escapeshellarg($empty)));
+        }
     }
 }

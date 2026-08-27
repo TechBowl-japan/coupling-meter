@@ -28,7 +28,7 @@ final class OptionsTest extends TestCase
     {
         $options = Options::parse([
             '/p', '--depth=3', '--since=6 months ago', '--top=5',
-            '--include=app, src', '--exclude=legacy,old', '--json', '--samples',
+            '--include=app, src', '--exclude=legacy,old', '--json',
         ]);
 
         $this->assertSame(3, $options->depth);
@@ -39,7 +39,8 @@ final class OptionsTest extends TestCase
         $this->assertContains('old', $options->excludes);
         $this->assertContains('vendor', $options->excludes);
         $this->assertTrue($options->json);
-        $this->assertTrue($options->samples);
+        $this->assertFalse($options->samples);
+        $this->assertTrue(Options::parse(['/p', '--samples'])->samples);
     }
 
     public function testHelpWithoutPath(): void
