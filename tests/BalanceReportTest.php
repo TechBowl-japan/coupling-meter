@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\Analyzer;
-use TechBowl\CouplingMeter\BalanceReport;
-use TechBowl\CouplingMeter\GitHistory;
-use TechBowl\CouplingMeter\ModuleMap;
-use TechBowl\CouplingMeter\Options;
-use TechBowl\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Analyzer;
+use Techtrain\CouplingMeter\BalanceReport;
+use Techtrain\CouplingMeter\GitHistory;
+use Techtrain\CouplingMeter\ModuleMap;
+use Techtrain\CouplingMeter\Options;
+use Techtrain\CouplingMeter\Pair;
 
 /**
  * git 履歴つきの小さなリポジトリを作って、分母の扱いを確かめる。
