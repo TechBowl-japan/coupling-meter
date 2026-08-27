@@ -1,8 +1,22 @@
 parameters:
-    level: 8
+    level: max
     paths:
         - src
         - bin
         - tests
     excludePaths:
         - tests/fixtures
+    tmpDir: .phpstan
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true
+
+    # 型の緩みを許さない
+    checkExplicitMixed: true
+    checkImplicitMixed: true
+    checkBenevolentUnionTypes: true
+    checkUninitializedProperties: true
+
+    # 対応する PHP のバージョン（8.2 から 8.5）
+    phpVersion:
+        min: 80200
+        max: 80500

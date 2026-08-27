@@ -3,6 +3,14 @@
     "description": "Measure coupling balance (strength, distance, volatility) of a PHP project",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "coupling",
+        "modularity",
+        "static-analysis",
+        "git",
+        "balanced-coupling"
+    ],
+    "homepage": "https://github.com/TechBowl-japan/coupling-meter",
     "authors": [
         {
             "name": "Takuma Kajikawa",
@@ -17,26 +25,36 @@
         "php": ">=8.2",
         "nikic/php-parser": "^5.0"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^11",
+        "phpstan/phpstan": "^2.2",
+        "friendsofphp/php-cs-fixer": "^3.95"
+    },
     "autoload": {
         "psr-4": {
             "Techtrain\\CouplingMeter\\": "src/"
         }
     },
-    "bin": [
-        "bin/coupling-meter"
-    ],
-    "require-dev": {
-        "phpunit/phpunit": "^11",
-        "phpstan/phpstan": "^2.2"
-    },
-    "scripts": {
-        "test": "phpunit",
-        "analyse": "phpstan analyse --memory-limit=1G",
-        "check": ["@analyse", "@test"]
-    },
     "autoload-dev": {
         "psr-4": {
             "Techtrain\\CouplingMeter\\Tests\\": "tests/"
         }
+    },
+    "bin": [
+        "bin/coupling-meter"
+    ],
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse --memory-limit=1G",
+        "cs-fix": "php-cs-fixer fix --verbose",
+        "cs-check": "php-cs-fixer fix --verbose --dry-run",
+        "check": [
+            "@phpstan",
+            "@cs-check",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true
     }
 }
