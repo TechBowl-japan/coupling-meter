@@ -61,8 +61,8 @@ final class BalanceReport
     {
         $index = $this->analyzer->index();
         $references = $this->analyzer->references();
-        $this->classCount = count($index);
-        $this->referenceCount = count($references);
+        $this->classCount = \count($index);
+        $this->referenceCount = \count($references);
 
         // 1 ファイルに複数モジュールのクラスが同居していれば、そのファイルの変更はどのモジュールにも数える。
         $fileToModule = [];
@@ -71,11 +71,11 @@ final class BalanceReport
             $relative = $this->relative($entry['file']);
             $module = $this->modules->moduleOf($fqcn);
             $allModules[$module] = true;
-            if (!in_array($module, $fileToModule[$relative] ?? [], true)) {
+            if (!\in_array($module, $fileToModule[$relative] ?? [], true)) {
                 $fileToModule[$relative][] = $module;
             }
         }
-        $this->moduleCount = count($allModules);
+        $this->moduleCount = \count($allModules);
 
         $this->buildVolatility($fileToModule, array_keys($allModules));
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
@@ -85,7 +85,7 @@ final class BalanceReport
         }
 
         // 参照をモジュールの組にまとめる。強度は最も強いもの、代表例は後で選ぶ。
-        /** @var array<string, array{from: string, to: string, strength: Strength, kinds: array<string, int>, references: int, samples: list<array<string, mixed>>}> $collected */
+        /** @var array<string, array{from: string, to: string, strength: Strength, kinds: array<string, int>, references: int, samples: list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, weight: int}>}> $collected */
         $collected = [];
         foreach ($references as $reference) {
             $from = $this->modules->moduleOf($reference->from);
@@ -125,7 +125,7 @@ final class BalanceReport
             $modules[$entry['from']] = true;
             $modules[$entry['to']] = true;
         }
-        $moduleCount = count($modules);
+        $moduleCount = \count($modules);
 
         $this->inferred = new InferredVolatility(
             $this->volatilityScore,
@@ -149,7 +149,7 @@ final class BalanceReport
             $base = $this->smallerCommitCount($from, $to);
 
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
-            $shared = $moduleCount > 0 && count($dependants[$to] ?? []) >= $moduleCount * 0.4;
+            $shared = $moduleCount > 0 && \count($dependants[$to] ?? []) >= $moduleCount * 0.4;
 
             // 触っている人が分かれていれば、名前空間が近くても調整の労力は上がる。
             $ownershipOverlap = $this->ownership?->overlap($from, $to) ?? 1.0;
@@ -230,10 +230,10 @@ final class BalanceReport
         foreach ($moduleCommits as $commits) {
             $touched += $commits;
         }
-        $this->commitCount = count($touched);
+        $this->commitCount = \count($touched);
 
         foreach ($allModules as $module) {
-            $this->moduleCommitCount[$module] = count($moduleCommits[$module] ?? []);
+            $this->moduleCommitCount[$module] = \count($moduleCommits[$module] ?? []);
         }
 
         $counts = array_values($this->moduleCommitCount);
@@ -291,7 +291,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'mutual',
                     'pair' => $pair->from . ' <-> ' . $pair->to,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '互いに依存している（%s へ %d 箇所 / %s へ %d 箇所）',
                         $pair->to,
                         $pair->references,
@@ -309,7 +309,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'tight-coupling',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '距離 %d の相手に %s で依存（%d 箇所）。相手はよく変わっている',
                         $pair->distance,
                         $strength->label(),
@@ -329,7 +329,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'inherited-volatility',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '自分はあまり変わらない（%d）が、よく変わる相手（%d）に %s で依存している',
                         $ownVolatility,
                         $pair->volatility,
@@ -343,7 +343,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'split-ownership',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '%s で %d 箇所つながっているが、触っている人がほとんど重なっていない',
                         $strength->label(),
                         $pair->references,
@@ -357,7 +357,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'string-reference',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         'クラス名を文字列で書いている箇所が %d 件。型に現れず、名前を変えても追えない',
                         $stringRefs,
                     ),
@@ -369,7 +369,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'low-cohesion',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '距離 %d の近さで %s の依存が %d 箇所。近くに置く理由が弱い',
                         $pair->distance,
                         $strength->label(),
@@ -382,7 +382,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'hidden',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '型の上は %s だが、%d 回のコミットで同時に変わっている（%d%%）',
                         $strength->label(),
                         $pair->coChanges,
@@ -395,7 +395,7 @@ final class BalanceReport
                 $findings[] = [
                     'type' => 'intrusive-and-moving',
                     'pair' => $key,
-                    'detail' => sprintf(
+                    'detail' => \sprintf(
                         '内部に踏み込んだ依存が %d 箇所あり、%d%% のコミットで同時に変わっている',
                         $pair->references,
                         (int) round($rate * 100),
@@ -414,7 +414,7 @@ final class BalanceReport
             'classes' => $this->classCount,
             'references' => $this->referenceCount,
             'modules' => $this->moduleCount,
-            'pairs' => count($this->pairs),
+            'pairs' => \count($this->pairs),
             'commits' => $this->commitCount,
         ];
     }

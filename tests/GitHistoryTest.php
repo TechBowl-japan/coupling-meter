@@ -9,12 +9,12 @@ use Techtrain\CouplingMeter\GitHistory;
 
 final class GitHistoryTest extends TestCase
 {
-    private string $repo;
+    private string $repo = '';
 
     protected function setUp(): void
     {
         $this->repo = sys_get_temp_dir() . '/coupling-meter-' . bin2hex(random_bytes(4));
-        mkdir($this->repo . '/app/顧客', 0777, true);
+        mkdir($this->repo . '/app/顧客', 0o777, true);
         $this->git('init -q');
         $this->git('config user.email test@example.com');
         $this->git('config user.name tester');
@@ -29,12 +29,12 @@ final class GitHistoryTest extends TestCase
 
     protected function tearDown(): void
     {
-        exec(sprintf('rm -rf %s', escapeshellarg($this->repo)));
+        exec(\sprintf('rm -rf %s', escapeshellarg($this->repo)));
     }
 
     private function git(string $args): void
     {
-        exec(sprintf('git -C %s %s 2>&1', escapeshellarg($this->repo), $args), $output, $status);
+        exec(\sprintf('git -C %s %s 2>&1', escapeshellarg($this->repo), $args), $output, $status);
         $this->assertSame(0, $status, implode("\n", $output));
     }
 
@@ -85,14 +85,14 @@ final class GitHistoryTest extends TestCase
         // リポジトリ自体はあるが、PHP を触ったコミットがない。bin はこれを「git 履歴なし」と区別して表示する
         $empty = sys_get_temp_dir() . '/coupling-meter-empty-' . bin2hex(random_bytes(4));
         mkdir($empty);
-        exec(sprintf('git -C %s init -q', escapeshellarg($empty)));
+        exec(\sprintf('git -C %s init -q', escapeshellarg($empty)));
         try {
             $history = new GitHistory($empty, '10 years ago');
 
             $this->assertFalse($history->load());
             $this->assertTrue($history->isRepository());
         } finally {
-            exec(sprintf('rm -rf %s', escapeshellarg($empty)));
+            exec(\sprintf('rm -rf %s', escapeshellarg($empty)));
         }
     }
 }

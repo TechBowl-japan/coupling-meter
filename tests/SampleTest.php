@@ -57,7 +57,7 @@ final class SampleTest extends TestCase
     public function testSamplesAreCapped(): void
     {
         foreach (self::$report->pairs() as $pair) {
-            $this->assertLessThanOrEqual(3, count($pair->samples));
+            $this->assertLessThanOrEqual(3, \count($pair->samples));
         }
     }
 

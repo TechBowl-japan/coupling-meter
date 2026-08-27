@@ -61,7 +61,7 @@ final class Options
             $hasValue = str_contains($body, '=');
             [$name, $value] = $hasValue ? explode('=', $body, 2) : [$body, null];
 
-            if (in_array($name, self::FLAGS, true)) {
+            if (\in_array($name, self::FLAGS, true)) {
                 if ($hasValue) {
                     throw new \InvalidArgumentException("--{$name} は値を取りません");
                 }
@@ -70,7 +70,7 @@ final class Options
                 continue;
             }
 
-            if (in_array($name, self::VALUED, true)) {
+            if (\in_array($name, self::VALUED, true)) {
                 if (!$hasValue) {
                     throw new \InvalidArgumentException("--{$name} には値が必要です（例: --{$name}=...）");
                 }

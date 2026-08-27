@@ -20,17 +20,17 @@ use Techtrain\CouplingMeter\Pair;
  */
 final class BalanceReportTest extends TestCase
 {
-    private string $repo;
+    private string $repo = '';
 
-    private BalanceReport $report;
+    private ?BalanceReport $report = null;
 
     protected function setUp(): void
     {
         $this->repo = sys_get_temp_dir() . '/coupling-meter-report-' . bin2hex(random_bytes(4));
         foreach (['A', 'B', 'C', 'D'] as $module) {
-            mkdir("{$this->repo}/app/{$module}", 0777, true);
+            mkdir("{$this->repo}/app/{$module}", 0o777, true);
         }
-        mkdir("{$this->repo}/tests", 0777, true);
+        mkdir("{$this->repo}/tests", 0o777, true);
         $this->git('init -q');
         $this->git('config user.email test@example.com');
         $this->git('config user.name tester');
@@ -53,18 +53,19 @@ final class BalanceReportTest extends TestCase
         $analyzer->run();
         $git = new GitHistory($this->repo, '10 years ago');
         $this->assertTrue($git->load());
-        $this->report = new BalanceReport($analyzer, new ModuleMap(2), $git, $this->repo);
-        $this->report->build();
+        $report = new BalanceReport($analyzer, new ModuleMap(2), $git, $this->repo);
+        $report->build();
+        $this->report = $report;
     }
 
     protected function tearDown(): void
     {
-        exec(sprintf('rm -rf %s', escapeshellarg($this->repo)));
+        exec(\sprintf('rm -rf %s', escapeshellarg($this->repo)));
     }
 
     private function git(string $args): void
     {
-        exec(sprintf('git -C %s %s 2>&1', escapeshellarg($this->repo), $args), $output, $status);
+        exec(\sprintf('git -C %s %s 2>&1', escapeshellarg($this->repo), $args), $output, $status);
         $this->assertSame(0, $status, implode("\n", $output));
     }
 
@@ -79,18 +80,23 @@ final class BalanceReportTest extends TestCase
     public function testModuleCountIncludesModulesWithoutPairs(): void
     {
         // C と D は組に現れないが、モジュールとしては存在する
-        $this->assertSame(4, $this->report->stats()['modules']);
+        $this->assertSame(4, $this->report()->stats()['modules']);
     }
 
     public function testCommitCountOnlyIncludesCommitsThatTouchAnalyzedModules(): void
     {
         // tests/ だけを触ったコミットは解析に使っていないので数えない
-        $this->assertSame(1, $this->report->stats()['commits']);
+        $this->assertSame(1, $this->report()->stats()['commits']);
+    }
+
+    private function report(): BalanceReport
+    {
+        return $this->report ?? throw new \LogicException('setUp が走っていない');
     }
 
     private function pair(string $from, string $to): Pair
     {
-        foreach ($this->report->pairs() as $pair) {
+        foreach ($this->report()->pairs() as $pair) {
             if ($pair->from === $from && $pair->to === $to) {
                 return $pair;
             }

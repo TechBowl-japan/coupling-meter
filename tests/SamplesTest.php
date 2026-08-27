@@ -9,10 +9,18 @@ use Techtrain\CouplingMeter\Samples;
 
 final class SamplesTest extends TestCase
 {
-    /** @return array{to: string, weight: int, line: int} */
+    /** @return array{file: string, line: int, kind: string, strength: string, from: string, to: string, weight: int} */
     private static function sample(string $to, int $weight, int $line): array
     {
-        return ['to' => $to, 'weight' => $weight, 'line' => $line];
+        return [
+            'file' => 'X.php',
+            'line' => $line,
+            'kind' => 'new',
+            'strength' => 'functional',
+            'from' => 'X',
+            'to' => $to,
+            'weight' => $weight,
+        ];
     }
 
     public function testStrongestComesFirst(): void

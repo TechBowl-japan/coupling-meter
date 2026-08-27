@@ -79,14 +79,14 @@ final class Analyzer
             $directory,
             static function (\SplFileInfo $entry) use ($excludes): bool {
                 if (!$entry->isDir()) {
-                    return $entry->getExtension() === "php";
+                    return $entry->getExtension() === 'php';
                 }
                 $name = $entry->getFilename();
-                if (str_starts_with($name, ".")) {
+                if (str_starts_with($name, '.')) {
                     return false;
                 }
 
-                return !in_array($name, $excludes, true);
+                return !\in_array($name, $excludes, true);
             },
         );
         $iterator = new \RecursiveIteratorIterator($filtered);
@@ -120,7 +120,7 @@ final class Analyzer
         $traverser = new NodeTraverser(new NameResolver());
         $ast = $traverser->traverse($ast);
 
-        $visitor = new class($file) extends \PhpParser\NodeVisitorAbstract {
+        $visitor = new class ($file) extends \PhpParser\NodeVisitorAbstract {
             /** @var array<string, array{kind: string, abstract: bool, file: string}> */
             public array $found = [];
 

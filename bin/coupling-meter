@@ -27,21 +27,21 @@ try {
 
 if ($options->help || $options->path === null) {
     fwrite(STDOUT, <<<TEXT
-    coupling-meter — PHP プロジェクトの結合バランスを測る
+        coupling-meter — PHP プロジェクトの結合バランスを測る
 
-    使い方:
-      coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
+        使い方:
+          coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
 
-    オプション:
-      --depth     名前空間の何段目までを 1 モジュールとするか（既定 2）
-      --since     git 履歴をさかのぼる範囲（既定 "12 months ago"）
-      --top       表示する組の数（既定 15）
-      --include   解析対象を root 直下のディレクトリに限定する（カンマ区切り）
-      --exclude   除外ディレクトリをカンマ区切りで追加
-      --json      機械可読な JSON で出力する
-      --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
+        オプション:
+          --depth     名前空間の何段目までを 1 モジュールとするか（既定 2）
+          --since     git 履歴をさかのぼる範囲（既定 "12 months ago"）
+          --top       表示する組の数（既定 15）
+          --include   解析対象を root 直下のディレクトリに限定する（カンマ区切り）
+          --exclude   除外ディレクトリをカンマ区切りで追加
+          --json      機械可読な JSON で出力する
+          --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
 
-    TEXT);
+        TEXT);
     exit($options->path === null && !$options->help ? 1 : 0);
 }
 

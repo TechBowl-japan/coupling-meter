@@ -13,8 +13,8 @@ namespace Techtrain\CouplingMeter;
 final class Samples
 {
     /**
-     * @param list<array<string, mixed>> $samples 各要素は to と weight を持つ
-     * @return list<array<string, mixed>> weight を除いた上位 $limit 件
+     * @param list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, weight: int}> $samples
+     * @return list<array{file: string, line: int, kind: string, strength: string, from: string, to: string}> weight を除いた上位 $limit 件
      */
     public static function pick(array $samples, int $limit): array
     {
@@ -24,7 +24,7 @@ final class Samples
         $rest = [];
         $seen = [];
         foreach ($samples as $sample) {
-            if (count($picked) < $limit && !isset($seen[$sample['to']])) {
+            if (\count($picked) < $limit && !isset($seen[$sample['to']])) {
                 $seen[$sample['to']] = true;
                 $picked[] = $sample;
             } else {
@@ -32,7 +32,7 @@ final class Samples
             }
         }
         foreach ($rest as $sample) {
-            if (count($picked) >= $limit) {
+            if (\count($picked) >= $limit) {
                 break;
             }
             $picked[] = $sample;
