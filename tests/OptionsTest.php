@@ -86,4 +86,13 @@ final class OptionsTest extends TestCase
 
         Options::parse(['/p', '/q']);
     }
+
+    public function testJsonAndSamplesAreMutuallyExclusive(): void
+    {
+        // 両方渡すと --samples が黙って勝っていた
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('--json と --samples');
+
+        Options::parse(['/p', '--json', '--samples']);
+    }
 }
