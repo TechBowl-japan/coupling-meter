@@ -44,6 +44,9 @@ if ($options->help || $options->path === null) {
           --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
           --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
                       省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
+          --split     この数を超えるクラスを持つ名前空間は 1 段深く切る（既定 0 = 切らない）
+          --weight-by-references
+                      順位づけを参照数の対数で重み付けする
 
         TEXT);
     exit($options->path === null && !$options->help ? 1 : 0);
@@ -74,7 +77,8 @@ try {
     exit(1);
 }
 
-$report = new BalanceReport($analyzer, new ModuleMap($depth), $hasGit ? $git : null, $root, $rules, Packages::fromRoot($root));
+$modules = ModuleMap::autoSplit($depth, array_keys($analyzer->index()), $options->split);
+$report = new BalanceReport($analyzer, $modules, $hasGit ? $git : null, $root, $rules, Packages::fromRoot($root), $options->weightByReferences);
 $report->build();
 
 $pairs = $report->pairs();

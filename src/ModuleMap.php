@@ -7,8 +7,47 @@ namespace Techtrain\CouplingMeter;
 /** 名前空間からモジュールを切り出し、モジュール間の距離を測る。 */
 final class ModuleMap
 {
-    public function __construct(private readonly int $depth = 2)
+    /**
+     * @param array<string, true> $split 1 段深く切る名前空間。巨大なモジュールの子名前空間を別モジュールにするために使う
+     */
+    public function __construct(
+        private readonly int $depth = 2,
+        private readonly array $split = [],
+    ) {
+    }
+
+    /**
+     * クラス数が maxClasses を超える名前空間は、その子名前空間を別モジュールとして切る。
+     * 子もまだ大きければ、さらに切る。0 なら分割しない。
+     *
+     * @param list<string> $fqcns 解析対象の全クラス
+     */
+    public static function autoSplit(int $depth, array $fqcns, int $maxClasses): self
     {
+        if ($maxClasses <= 0) {
+            return new self($depth);
+        }
+
+        $split = [];
+        $current = new self($depth);
+        // 分割するたびにモジュールの切り方が変わるので、変化がなくなるまで繰り返す
+        do {
+            $counts = [];
+            foreach ($fqcns as $fqcn) {
+                $module = $current->moduleOf($fqcn);
+                $counts[$module] = ($counts[$module] ?? 0) + 1;
+            }
+            $changed = false;
+            foreach ($counts as $module => $count) {
+                if ($count > $maxClasses && !isset($split[$module])) {
+                    $split[$module] = true;
+                    $changed = true;
+                }
+            }
+            $current = new self($depth, $split);
+        } while ($changed);
+
+        return $current;
     }
 
     public function moduleOf(string $fqcn): string
@@ -20,7 +59,13 @@ final class ModuleMap
             return '(root)';
         }
 
-        return implode('\\', \array_slice($parts, 0, $this->depth));
+        $take = $this->depth;
+        // 分割対象の名前空間の中なら、その子まで含める。子も分割対象なら、さらに深く
+        while ($take < \count($parts) && isset($this->split[implode('\\', \array_slice($parts, 0, $take))])) {
+            ++$take;
+        }
+
+        return implode('\\', \array_slice($parts, 0, $take));
     }
 
     /**

@@ -60,6 +60,7 @@ final class BalanceReport
         private readonly string $root,
         private readonly ?Rules $rules = null,
         private readonly ?Packages $packages = null,
+        private readonly bool $weightByReferences = false,
     ) {
     }
 
@@ -224,9 +225,14 @@ final class BalanceReport
         }
 
         // 均衡度が低いほど複雑性に傾いている。低い順に並べる。
-        uasort($this->pairs, static function (Pair $a, Pair $b): int {
-            return [$a->balance, -$b->coChangeRate, -$b->references]
-                <=> [$b->balance, -$a->coChangeRate, -$a->references];
+        // --weight-by-references なら、参照数の対数で割ったスコアで並べる（原著の立場からは半歩離れるので任意）。
+        $weight = $this->weightByReferences;
+        uasort($this->pairs, static function (Pair $a, Pair $b) use ($weight): int {
+            $left = $weight ? Ranking::score($a->balance, $a->references) : $a->balance;
+            $right = $weight ? Ranking::score($b->balance, $b->references) : $b->balance;
+
+            return [$left, -$a->coChangeRate, -$a->references]
+                <=> [$right, -$b->coChangeRate, -$b->references];
         });
     }
 
