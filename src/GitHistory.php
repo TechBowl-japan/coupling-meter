@@ -24,6 +24,14 @@ final class GitHistory
 
     private string $prefix = '';
 
+    /** 解析対象が git の作業ツリーの中にあるか。履歴が空でも true。 */
+    public function isRepository(): bool
+    {
+        exec(sprintf('git -C %s rev-parse --is-inside-work-tree >/dev/null 2>&1', escapeshellarg($this->root)), $output, $status);
+
+        return $status === 0;
+    }
+
     public function load(): bool
     {
         $prefix = shell_exec(sprintf('git -C %s rev-parse --show-prefix 2>/dev/null', escapeshellarg($this->root)));

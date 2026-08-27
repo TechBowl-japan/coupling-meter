@@ -66,4 +66,33 @@ final class GitHistoryTest extends TestCase
         $this->assertArrayHasKey('App\\Order', $commits);
         $this->assertArrayHasKey('App\\Billing', $commits);
     }
+
+    public function testKnowsWhetherTheDirectoryIsARepository(): void
+    {
+        $this->assertTrue((new GitHistory($this->repo))->isRepository());
+
+        $plain = sys_get_temp_dir() . '/coupling-meter-plain-' . bin2hex(random_bytes(4));
+        mkdir($plain);
+        try {
+            $this->assertFalse((new GitHistory($plain))->isRepository());
+        } finally {
+            rmdir($plain);
+        }
+    }
+
+    public function testLoadIsFalseWhenTheRepositoryHasNoUsableCommits(): void
+    {
+        // リポジトリ自体はあるが、PHP を触ったコミットがない。bin はこれを「git 履歴なし」と区別して表示する
+        $empty = sys_get_temp_dir() . '/coupling-meter-empty-' . bin2hex(random_bytes(4));
+        mkdir($empty);
+        exec(sprintf('git -C %s init -q', escapeshellarg($empty)));
+        try {
+            $history = new GitHistory($empty, '10 years ago');
+
+            $this->assertFalse($history->load());
+            $this->assertTrue($history->isRepository());
+        } finally {
+            exec(sprintf('rm -rf %s', escapeshellarg($empty)));
+        }
+    }
 }
