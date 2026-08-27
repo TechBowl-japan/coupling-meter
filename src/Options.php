@@ -15,10 +15,10 @@ final class Options
     public const DEFAULT_EXCLUDES = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
 
     /** 値が要るオプション */
-    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules'];
+    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split'];
 
     /** 値を取らないオプション */
-    private const FLAGS = ['help', 'json', 'samples'];
+    private const FLAGS = ['help', 'json', 'samples', 'weight-by-references'];
 
     /**
      * @param list<string> $includes
@@ -36,6 +36,10 @@ final class Options
         public readonly bool $help,
         /** 許可ルールのファイル。null なら root の coupling-meter.yaml / deptrac.yaml を探す */
         public readonly ?string $rules,
+        /** この数を超えるクラスを持つ名前空間は 1 段深く切る。0 なら切らない */
+        public readonly int $split,
+        /** 順位づけを参照数の対数で重み付けする */
+        public readonly bool $weightByReferences,
     ) {
     }
 
@@ -104,7 +108,18 @@ final class Options
             samples: $flags['samples'] ?? false,
             help: $flags['help'] ?? false,
             rules: $values['rules'] ?? null,
+            split: self::integerOrZero('split', $values['split'] ?? '0'),
+            weightByReferences: $flags['weight-by-references'] ?? false,
         );
+    }
+
+    private static function integerOrZero(string $name, string $value): int
+    {
+        if (!ctype_digit($value)) {
+            throw new \InvalidArgumentException("--{$name} には 0 以上の整数を指定してください: {$value}");
+        }
+
+        return (int) $value;
     }
 
     private static function integer(string $name, string $value): int

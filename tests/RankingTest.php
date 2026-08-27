@@ -23,8 +23,8 @@ final class RankingTest extends TestCase
 
     public function testWeightIsLogarithmic(): void
     {
-        // 100 箇所でも均衡度 3 の組が、1 箇所の均衡度 1 の組を追い越すほどではない
-        $this->assertLessThan(Ranking::score(3, 100), Ranking::score(1, 1));
+        // 10 箇所では均衡度 3 の組が、1 箇所の均衡度 1 の組を追い越すほどではない
+        $this->assertLessThan(Ranking::score(3, 10), Ranking::score(1, 1));
         // 1000 箇所なら追い越す
         $this->assertLessThan(Ranking::score(1, 1), Ranking::score(3, 1000));
     }

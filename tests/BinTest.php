@@ -24,7 +24,7 @@ final class BinTest extends TestCase
         $help = implode("\n", $output);
 
         $this->assertSame(0, $status, $help);
-        foreach (['--depth', '--since', '--top', '--include', '--exclude', '--json', '--samples', '--rules'] as $option) {
+        foreach (['--depth', '--since', '--top', '--include', '--exclude', '--json', '--samples', '--rules', '--split', '--weight-by-references'] as $option) {
             $this->assertStringContainsString($option, $help);
         }
     }
