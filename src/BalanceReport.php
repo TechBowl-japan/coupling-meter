@@ -21,8 +21,9 @@ final class BalanceReport
     private const MIN_REFERENCES = 20;
     private const MIN_STRING_REFERENCES = 3;
     private const MIN_CO_CHANGES = 5;
-    private const HIDDEN_CO_CHANGE_RATE = 0.30;
-    private const INTRUSIVE_CO_CHANGE_RATE = 0.20;
+    // 同時変更率は Jaccard（共起 / 和集合）。min を分母にしていた頃の 30% / 20% から下げてある。
+    private const HIDDEN_CO_CHANGE_RATE = 0.20;
+    private const INTRUSIVE_CO_CHANGE_RATE = 0.15;
 
     /** @var array<string, Pair> key => Pair。均衡度の低い順 */
     private array $pairs = [];
@@ -147,7 +148,6 @@ final class BalanceReport
             $strength = $entry['strength'];
             $volatility = $this->volatilityScore[$to] ?? 1;
             $coCommits = $coChanges[$this->coKey($from, $to)] ?? 0;
-            $base = $this->smallerCommitCount($from, $to);
 
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
             $shared = $moduleCount > 0 && \count($dependants[$to] ?? []) >= $moduleCount * 0.4;
@@ -196,7 +196,11 @@ final class BalanceReport
                 // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
                 balanced: ($strengthHigh xor $distanceHigh) || !$volatilityHigh,
                 coChanges: $coCommits,
-                coChangeRate: $base > 0 ? $coCommits / $base : 0.0,
+                coChangeRate: CoChange::rate(
+                    $coCommits,
+                    $this->moduleCommitCount[$from] ?? 0,
+                    $this->moduleCommitCount[$to] ?? 0,
+                ),
                 strengthValue: $strengthValue,
                 distanceValue: $distanceValue,
                 volatilityValue: $volatilityValue,
@@ -242,18 +246,6 @@ final class BalanceReport
         foreach ($this->moduleCommitCount as $module => $count) {
             $this->volatilityScore[$module] = Volatility::quartile($counts, $count);
         }
-    }
-
-    /** 変更の少ない側を分母にする。「片方が変わるとき、もう片方も変わる割合」を見たいため。 */
-    private function smallerCommitCount(string $a, string $b): int
-    {
-        $left = $this->moduleCommitCount[$a] ?? 0;
-        $right = $this->moduleCommitCount[$b] ?? 0;
-        if ($left === 0 || $right === 0) {
-            return max($left, $right);
-        }
-
-        return min($left, $right);
     }
 
     private function coKey(string $a, string $b): string

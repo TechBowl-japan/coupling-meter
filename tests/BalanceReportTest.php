@@ -69,6 +69,12 @@ final class BalanceReportTest extends TestCase
         $this->assertSame(0, $status, implode("\n", $output));
     }
 
+    public function testCoChangeRateIsJaccard(): void
+    {
+        // A は 1 コミット、B は 0 コミット。共起もない → 0
+        $this->assertSame(0.0, $this->pair('App\\B', 'App\\A')->coChangeRate);
+    }
+
     public function testOnlyChangedModuleIsTheMostVolatile(): void
     {
         // A だけが変わった。B、C、D を分布に含めると A は 4 モジュール中の最上位になる
