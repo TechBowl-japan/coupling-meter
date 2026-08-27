@@ -26,13 +26,44 @@ final class Distance
     ) {
     }
 
-    public static function of(ModuleMap $modules, string $from, string $to, bool $sharedKernel, bool $distantOwners): self
-    {
+    /** 同じ composer パッケージの中で許す階層差の上限。同一デプロイ内で目盛り 7 を出さない。 */
+    private const SAME_PACKAGE_MAX_GAP = 4;
+
+    /** 別の composer パッケージに属する組に足す段数。 */
+    private const CROSS_PACKAGE_GAP = 2;
+
+    /**
+     * @param bool $asyncOnly キューやイベントなど非同期の呼び出しだけでつながっている組か
+     * @param Packages|null $packages composer パッケージの境界。null なら見ない
+     */
+    public static function of(
+        ModuleMap $modules,
+        string $from,
+        string $to,
+        bool $sharedKernel,
+        bool $distantOwners,
+        bool $asyncOnly = false,
+        ?Packages $packages = null,
+    ): self {
         $gap = $modules->hierarchyGap($from, $to);
+
+        // 同じデプロイ単位なら名前空間が深くても近い。別のパッケージなら遠い。
+        $fromPackage = $packages?->packageOf($from);
+        $toPackage = $packages?->packageOf($to);
+        if ($fromPackage !== null && $toPackage !== null) {
+            $gap = $fromPackage === $toPackage
+                ? min(self::SAME_PACKAGE_MAX_GAP, $gap)
+                : $gap + self::CROSS_PACKAGE_GAP;
+        }
+
         if ($sharedKernel) {
             $gap = max(0, $gap - 1);
         }
         if ($distantOwners) {
+            ++$gap;
+        }
+        // 非同期でしか呼ばれない相手は、実行時にも時間的にも離れている。原著 8.1 の実行時結合による距離。
+        if ($asyncOnly) {
             ++$gap;
         }
 

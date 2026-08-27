@@ -55,7 +55,7 @@ final class PairTest extends TestCase
         $array = $this->pair('Fixture\Http', 'Fixture\Domain')->toArray();
 
         $this->assertSame([
-            'from', 'to', 'strength', 'kinds', 'references', 'samples', 'distance', 'shared_kernel',
+            'from', 'to', 'strength', 'kinds', 'references', 'samples', 'distance', 'shared_kernel', 'async_only',
             'ownership_overlap', 'evolution_ratio', 'inferred_volatility_from', 'volatility_inherited',
             'distant_owners', 'volatility', 'quadrant', 'intended', 'balanced', 'co_changes', 'co_change_rate',
             'strength_value', 'distance_value', 'volatility_value', 'modularity', 'balance',

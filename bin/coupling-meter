@@ -8,6 +8,7 @@ use Techtrain\CouplingMeter\BalanceReport;
 use Techtrain\CouplingMeter\GitHistory;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Options;
+use Techtrain\CouplingMeter\Packages;
 use Techtrain\CouplingMeter\Pair;
 use Techtrain\CouplingMeter\Rules;
 
@@ -73,7 +74,7 @@ try {
     exit(1);
 }
 
-$report = new BalanceReport($analyzer, new ModuleMap($depth), $hasGit ? $git : null, $root, $rules);
+$report = new BalanceReport($analyzer, new ModuleMap($depth), $hasGit ? $git : null, $root, $rules, Packages::fromRoot($root));
 $report->build();
 
 $pairs = $report->pairs();

@@ -25,6 +25,8 @@ final class Pair
         /** 象限判定用の距離（1 から 4） */
         public readonly int $distance,
         public readonly bool $sharedKernel,
+        /** 非同期の呼び出し（キュー、イベント）だけでつながっているか */
+        public readonly bool $asyncOnly,
         public readonly float $ownershipOverlap,
         public readonly ?float $evolutionRatio,
         public readonly int $inferredVolatilityFrom,
@@ -65,6 +67,7 @@ final class Pair
             'samples' => $this->samples,
             'distance' => $this->distance,
             'shared_kernel' => $this->sharedKernel,
+            'async_only' => $this->asyncOnly,
             'ownership_overlap' => $this->ownershipOverlap,
             'evolution_ratio' => $this->evolutionRatio,
             'inferred_volatility_from' => $this->inferredVolatilityFrom,
