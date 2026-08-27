@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter;
+namespace Techtrain\CouplingMeter;
 
 /**
  * モジュールの組ごとに、人や AI が読む代表例を選ぶ。

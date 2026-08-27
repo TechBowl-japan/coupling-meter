@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\Analyzer;
-use TechBowl\CouplingMeter\Reference;
-use TechBowl\CouplingMeter\Strength;
+use Techtrain\CouplingMeter\Analyzer;
+use Techtrain\CouplingMeter\Reference;
+use Techtrain\CouplingMeter\Strength;
 
 final class ReferenceCollectorTest extends TestCase
 {

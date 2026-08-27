@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter;
+namespace Techtrain\CouplingMeter;
 
 /**
  * 参照と履歴を突き合わせ、モジュールの組ごとに結合バランスを組み立てる。

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter\Tests;
+namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use TechBowl\CouplingMeter\Analyzer;
-use TechBowl\CouplingMeter\BalanceReport;
-use TechBowl\CouplingMeter\ModuleMap;
-use TechBowl\CouplingMeter\Pair;
-use TechBowl\CouplingMeter\Strength;
+use Techtrain\CouplingMeter\Analyzer;
+use Techtrain\CouplingMeter\BalanceReport;
+use Techtrain\CouplingMeter\ModuleMap;
+use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Strength;
 
 final class PairTest extends TestCase
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TechBowl\CouplingMeter;
+namespace Techtrain\CouplingMeter;
 
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
