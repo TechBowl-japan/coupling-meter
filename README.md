@@ -137,8 +137,13 @@ coupling-meter /path/to/project
 ## 開発
 
 ```bash
-composer check   # phpstan (level 8) と phpunit
+composer check      # phpstan (level max) → php-cs-fixer (dry-run) → phpunit
+composer phpstan    # 静的解析だけ
+composer cs-fix     # コードスタイルを直す
+composer test       # テストだけ
 ```
+
+CI では PHP 8.2 から 8.5 の各バージョンで phpstan とテスト（PCOV でカバレッジを取り Codecov に送る）を回し、php-cs-fixer で整形を確認する。
 
 `tests/fixtures/` に判定を確かめるための小さなプロジェクトを置いてある。
 

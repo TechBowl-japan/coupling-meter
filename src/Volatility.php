@@ -18,7 +18,7 @@ final class Volatility
      */
     public static function quartile(array $counts, int $value): int
     {
-        $total = count($counts);
+        $total = \count($counts);
         // 一度も変わっていないなら、他がどうであれ変動性は最も低い。
         if ($total === 0 || $value === 0) {
             return 1;

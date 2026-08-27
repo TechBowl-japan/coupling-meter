@@ -27,17 +27,17 @@ final class GitHistory
     /** 解析対象が git の作業ツリーの中にあるか。履歴が空でも true。 */
     public function isRepository(): bool
     {
-        exec(sprintf('git -C %s rev-parse --is-inside-work-tree >/dev/null 2>&1', escapeshellarg($this->root)), $output, $status);
+        exec(\sprintf('git -C %s rev-parse --is-inside-work-tree >/dev/null 2>&1', escapeshellarg($this->root)), $output, $status);
 
         return $status === 0;
     }
 
     public function load(): bool
     {
-        $prefix = shell_exec(sprintf('git -C %s rev-parse --show-prefix 2>/dev/null', escapeshellarg($this->root)));
+        $prefix = shell_exec(\sprintf('git -C %s rev-parse --show-prefix 2>/dev/null', escapeshellarg($this->root)));
         $this->prefix = trim((string) $prefix);
 
-        $command = sprintf(
+        $command = \sprintf(
             // core.quotepath を切らないと、非 ASCII のパスが "\343\201\202" のように引用・エスケープされて出る。
             'git -C %s -c core.quotepath=false log --since=%s --no-merges --name-only --pretty=format:__C__%%H%%x09%%an%%x09%%s 2>/dev/null',
             escapeshellarg($this->root),
@@ -68,7 +68,7 @@ final class GitHistory
                     if (!str_starts_with($line, $this->prefix)) {
                         continue;
                     }
-                    $line = substr($line, strlen($this->prefix));
+                    $line = substr($line, \strlen($this->prefix));
                 }
                 $this->commits[$current][] = $line;
             }
@@ -127,7 +127,7 @@ final class GitHistory
         $pairs = [];
         foreach ($this->commits as $files) {
             $modules = $this->modulesOf($files, $fileToModules);
-            $count = count($modules);
+            $count = \count($modules);
             for ($i = 0; $i < $count; ++$i) {
                 for ($j = $i + 1; $j < $count; ++$j) {
                     $key = $modules[$i] . '|' . $modules[$j];

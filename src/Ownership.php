@@ -53,8 +53,8 @@ final class Ownership
             return 1.0;
         }
 
-        $shared = count(array_intersect($left, $right));
-        $union = count(array_unique([...$left, ...$right]));
+        $shared = \count(array_intersect($left, $right));
+        $union = \count(array_unique([...$left, ...$right]));
 
         return $union > 0 ? $shared / $union : 1.0;
     }

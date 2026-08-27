@@ -178,7 +178,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
             // コンストラクタのプロモートされたプロパティ。クラス全体で使えるよう、ここで登録する。
             if ($stmt instanceof Node\Stmt\ClassMethod && $stmt->name->toLowerString() === '__construct') {
                 foreach ($stmt->getParams() as $param) {
-                    if ($param->flags === 0 || !$param->var instanceof Node\Expr\Variable || !is_string($param->var->name)) {
+                    if ($param->flags === 0 || !$param->var instanceof Node\Expr\Variable || !\is_string($param->var->name)) {
                         continue;
                     }
                     foreach ($this->typeNames($param->type) as $type) {
@@ -199,7 +199,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
         foreach ($node->getParams() as $param) {
             foreach ($this->typeNames($param->type) as $type) {
                 $this->addType($type, 'param-type', $param->getLine());
-                if ($param->var instanceof Node\Expr\Variable && is_string($param->var->name)) {
+                if ($param->var instanceof Node\Expr\Variable && \is_string($param->var->name)) {
                     $this->variableTypes[$param->var->name] = $type;
                 }
             }
@@ -245,7 +245,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
         // コンテナ経由の解決。相手の存在と、生成を任せられることを知っている。
         if ($node instanceof Node\Expr\FuncCall
             && $node->name instanceof Node\Name
-            && in_array(strtolower($node->name->toString()), self::CONTAINER_FUNCTIONS, true)
+            && \in_array(strtolower($node->name->toString()), self::CONTAINER_FUNCTIONS, true)
         ) {
             $target = $this->classConstArgument($node->getArgs());
             if ($target !== null) {
@@ -257,7 +257,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
 
         if ($node instanceof Node\Expr\MethodCall
             && $node->name instanceof Node\Identifier
-            && in_array(strtolower($node->name->toString()), self::CONTAINER_METHODS, true)
+            && \in_array(strtolower($node->name->toString()), self::CONTAINER_METHODS, true)
         ) {
             $target = $this->classConstArgument($node->getArgs());
             if ($target !== null) {
@@ -303,7 +303,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
 
     private function resolveVarType(Node\Expr $var): ?string
     {
-        if ($var instanceof Node\Expr\Variable && is_string($var->name)) {
+        if ($var instanceof Node\Expr\Variable && \is_string($var->name)) {
             return $this->variableTypes[$var->name] ?? null;
         }
 

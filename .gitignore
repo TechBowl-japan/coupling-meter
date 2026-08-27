@@ -1,2 +1,7 @@
 /vendor/
+/.phpstan/
 /.phpunit.cache/
+/.php-cs-fixer.cache
+/coverage/
+/build/
+.DS_Store

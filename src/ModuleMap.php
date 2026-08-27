@@ -20,7 +20,7 @@ final class ModuleMap
             return '(root)';
         }
 
-        return implode('\\', array_slice($parts, 0, $this->depth));
+        return implode('\\', \array_slice($parts, 0, $this->depth));
     }
 
     /**
@@ -37,11 +37,11 @@ final class ModuleMap
         $right = explode('\\', $b);
 
         $shared = 0;
-        $limit = min(count($left), count($right));
+        $limit = min(\count($left), \count($right));
         while ($shared < $limit && $left[$shared] === $right[$shared]) {
             ++$shared;
         }
 
-        return (count($left) - $shared) + (count($right) - $shared);
+        return (\count($left) - $shared) + (\count($right) - $shared);
     }
 }

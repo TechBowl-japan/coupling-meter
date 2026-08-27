@@ -1,4 +1,4 @@
-name: test
+name: Tests
 
 on:
   push:
@@ -6,7 +6,8 @@ on:
   pull_request:
 
 jobs:
-  phpunit:
+  test:
+    name: PHP ${{ matrix.php }} Tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -14,15 +15,62 @@ jobs:
         php: ['8.2', '8.3', '8.4', '8.5']
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: shivammathur/setup-php@v2
+      - name: Setup PHP ${{ matrix.php }} with PCOV
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          coverage: none
+          coverage: pcov
+          tools: composer:v2
+          ini-values: |
+            pcov.enabled=1
+            pcov.directory=.
+            pcov.exclude=*/vendor/*,*/tests/*
 
-      - uses: ramsey/composer-install@v3
+      - name: Validate composer.json
+        run: composer validate --strict
 
-      - run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+      - name: Install dependencies (cached)
+        uses: ramsey/composer-install@v3
+        with:
+          composer-options: --no-interaction --prefer-dist --no-progress
 
-      - run: vendor/bin/phpunit
+      - name: Make report directories
+        run: mkdir -p build/logs coverage/html
+
+      - name: Run PHPUnit with coverage (PCOV)
+        run: |
+          vendor/bin/phpunit \
+            --coverage-clover build/logs/clover.xml \
+            --coverage-html coverage/html \
+            --log-junit build/logs/junit.xml \
+            --colors=always
+
+      - name: Upload coverage to Codecov
+        if: matrix.php == '8.5'
+        uses: codecov/codecov-action@v5
+        with:
+          files: build/logs/clover.xml
+          flags: unittests
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() && matrix.php == '8.5' }}
+        uses: codecov/test-results-action@v1
+        with:
+          files: build/logs/junit.xml
+          flags: unittests
+          fail_ci_if_error: false
+
+      - name: Upload test artifacts (JUnit & HTML & Clover)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-${{ matrix.php }}-test-artifacts
+          path: |
+            build/logs/
+            coverage/html/
+          retention-days: 7

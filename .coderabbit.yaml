@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ja-JP
+early_access: false
+tone_instructions: |
+  簡潔に、建設的にレビューする。
+  指摘ごとに根拠を明示する（PHP のバージョン依存、型の安全性、原著の規則との対応など）。
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    drafts: true
+    base_branches:
+      - main
+
+  path_filters:
+    - "!vendor/**"
+    - "!**/*.lock"
+    - "!.phpunit.cache/**"
+    - "!.php-cs-fixer.cache"
+    - "!.phpstan/**"
+    - "!tests/fixtures/**"
+
+  path_instructions:
+    - path: "src/**/*.php"
+      instructions: |
+        - PHP 8.2 以上で動く構文と機能を前提にレビューする。
+        - Vlad Khononov『Balancing Coupling in Software Design』の統合強度・距離・変動性の定義と、README の「何を測るか」「原著の規則」との対応が崩れていないか確認する。
+        - 計測値の意味が変わる変更（閾値、目盛り、分位、距離の補正）は、README と変更の理由が揃っているか確認する。
+        - readonly / final / 型宣言（戻り値、引数、プロパティ）が徹底されているか確認する。
+        - 公開 API（Analyzer、BalanceReport、Pair、Options、bin の出力形式）の破壊的変更は明示的に指摘する。
+    - path: "tests/**/*.php"
+      instructions: |
+        - t-wada 流の TDD（Red→Green→Refactor）に沿っているか、テストが先にコミットされているかを確認する。
+        - 1 テスト 1 アサーションに固執せず、振る舞いの単位で検証できているかを見る。
+        - 境界条件（無名クラス、クロージャ、同順位、変更 0 回のモジュール、非 ASCII パス）が網羅されているか確認する。
+        - tests/fixtures 配下は判定用のサンプルプロジェクトであり、コード品質の指摘対象にしない。
+    - path: "**/*.md"
+      instructions: |
+        - README の出力例・オプション・指摘の条件が src の実装と一致しているか確認する。
+        - 日本語の技術文書として、原著の用語（強度、距離、変動性、均衡度）が一貫しているか確認する。
+    - path: ".github/workflows/**"
+      instructions: |
+        - 使用している actions がバージョン固定されているか（SHA または明示的なタグ）確認する。
+        - secrets の不適切な扱いがないか確認する。
+
+  tools:
+    phpstan:
+      enabled: true
+      level: default
+    phpmd:
+      enabled: false
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+    languagetool:
+      enabled: true
+      enabled_only: false
+      level: default
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+chat:
+  auto_reply: true
