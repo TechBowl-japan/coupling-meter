@@ -39,12 +39,14 @@ final class PairTest extends TestCase
         $pair = $this->pair('Fixture\Http', 'Fixture\Domain');
 
         $this->assertSame(Strength::Intrusive, $pair->strength);
-        $this->assertSame(2, $pair->distance);
+        // Domain は Http / Legacy / Reports から依存される共有カーネルなので、名前空間の距離 2 から 1 段近づく
+        $this->assertTrue($pair->sharedKernel);
+        $this->assertSame(1, $pair->distance);
         $this->assertSame('high-cohesion', $pair->quadrant);
         $this->assertTrue($pair->balanced);
         $this->assertSame(10, $pair->strengthValue);
-        $this->assertSame(4, $pair->distanceValue);
-        $this->assertSame(7, $pair->modularity);
+        $this->assertSame(3, $pair->distanceValue);
+        $this->assertSame(8, $pair->modularity);
         $this->assertSame('Fixture\Http -> Fixture\Domain', $pair->key());
     }
 
