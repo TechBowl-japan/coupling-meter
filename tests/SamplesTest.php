@@ -9,7 +9,7 @@ use Techtrain\CouplingMeter\Samples;
 
 final class SamplesTest extends TestCase
 {
-    /** @return array{file: string, line: int, kind: string, strength: string, from: string, to: string, weight: int} */
+    /** @return array{file: string, line: int, kind: string, strength: string, from: string, to: string, why: string, next: string, weight: int} */
     private static function sample(string $to, int $weight, int $line): array
     {
         return [
@@ -19,6 +19,8 @@ final class SamplesTest extends TestCase
             'strength' => 'functional',
             'from' => 'X',
             'to' => $to,
+            'why' => 'why',
+            'next' => 'next',
             'weight' => $weight,
         ];
     }

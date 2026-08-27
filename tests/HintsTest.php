@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Techtrain\CouplingMeter\Tests;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Techtrain\CouplingMeter\Hints;
 
@@ -20,7 +21,7 @@ final class HintsTest extends TestCase
         ];
     }
 
-    /** @dataProvider kinds */
+    #[DataProvider('kinds')]
     public function testEveryKindExplainsWhyAndWhatToDo(string $kind): void
     {
         $hint = Hints::for($kind);

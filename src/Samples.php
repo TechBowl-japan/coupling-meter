@@ -13,8 +13,8 @@ namespace Techtrain\CouplingMeter;
 final class Samples
 {
     /**
-     * @param list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, weight: int}> $samples
-     * @return list<array{file: string, line: int, kind: string, strength: string, from: string, to: string}> weight を除いた上位 $limit 件
+     * @param list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, why: string, next: string, weight: int}> $samples
+     * @return list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, why: string, next: string}> weight を除いた上位 $limit 件
      */
     public static function pick(array $samples, int $limit): array
     {
