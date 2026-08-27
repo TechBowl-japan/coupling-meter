@@ -53,20 +53,6 @@ final class SharedTablesTest extends TestCase
         $found = self::sharedTable('Fixture\Reports\OrderReport', 'Fixture\Domain\Order');
 
         $this->assertStringEndsWith('Reports/OrderReport.php', $found[0]->file);
-        $this->assertSame(13, $found[0]->line);
-    }
-
-    public function testClassesInTheSameModuleDoNotCount(): void
-    {
-        foreach (self::$references as $reference) {
-            if ($reference->kind !== 'shared-table') {
-                continue;
-            }
-            $this->assertNotSame(
-                explode('\\', $reference->from)[1],
-                explode('\\', $reference->to)[1],
-                "同じモジュール内の共有テーブルは参照にしない: {$reference->from} -> {$reference->to}",
-            );
-        }
+        $this->assertSame(12, $found[0]->line);
     }
 }

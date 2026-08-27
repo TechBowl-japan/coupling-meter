@@ -55,12 +55,24 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 
 | 強度 | AST 上のしるし |
 |---|---|
-| intrusive | 具象クラスの継承、trait の use、静的プロパティの参照 |
+| intrusive | 具象クラスの継承、trait の use、静的プロパティの参照、同じテーブルを触る（下記） |
 | functional | new、静的メソッド呼び出し、型が判っている変数へのメソッド呼び出し、コンテナ経由の解決 |
 | model | 引数と戻り値の型、プロパティの型、instanceof、catch、クラス定数、属性、文字列で書かれたクラス名 |
 | contract | interface と抽象クラスへの依存 |
 
 相手が interface または抽象クラスなら、new とメソッド呼び出しをどちらも contract に落とす。
+
+### 型に出ない結合: 同じテーブル
+
+クラス参照に現れない結合のうち、同じテーブルを触っているものは `shared-table` として拾う。テーブルのスキーマという内部表現を共有しているので intrusive に置く。
+
+| 出どころ | 判定 |
+|---|---|
+| Eloquent モデル | `Model` を継承するクラス。`protected $table` があればその値、なければクラス名を snake_case の複数形にしたもの |
+| 生 SQL | 文字列リテラル中の `FROM` / `JOIN` / `INTO` / `UPDATE` / `DELETE FROM` に続く識別子 |
+| クエリビルダ | `DB::table('x')`、`->table('x')`、`->from('x')` の文字列引数 |
+
+同じテーブルを触るクラスの組ごとに、双方向の参照を 1 件ずつ足す。モデルが 1 つもないテーブル（生 SQL 同士だけ）も組になる。
 
 ## インストール
 

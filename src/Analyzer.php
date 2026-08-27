@@ -21,6 +21,9 @@ final class Analyzer
     /** @var list<Reference> */
     private array $references = [];
 
+    /** @var list<array{class: string, table: string, file: string, line: int}> クラスが触っているテーブル */
+    private array $tableUsages = [];
+
     /**
      * @param list<string> $excludes
      * @param list<string> $includes root 直下のこのディレクトリだけを見る。空なら root 全体。
@@ -41,6 +44,13 @@ final class Analyzer
         }
         foreach ($files as $file) {
             $this->collectFile($file);
+        }
+
+        // クラス参照には現れない結合。同じテーブルを触るクラス同士を intrusive の参照として足す。
+        foreach (SharedTables::references($this->tableUsages) as $reference) {
+            if (isset($this->index[$reference->from], $this->index[$reference->to])) {
+                $this->references[] = $reference;
+            }
         }
     }
 
@@ -169,11 +179,15 @@ final class Analyzer
         $ast = $traverser->traverse($ast);
 
         $collector = new ReferenceCollector($this->index, $file);
-        $traverser = new NodeTraverser($collector);
+        $tables = new TableUsageCollector($file);
+        $traverser = new NodeTraverser($collector, $tables);
         $traverser->traverse($ast);
 
         foreach ($collector->references() as $reference) {
             $this->references[] = $reference;
+        }
+        foreach ($tables->usages() as $usage) {
+            $this->tableUsages[] = $usage;
         }
     }
 
