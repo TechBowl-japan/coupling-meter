@@ -81,4 +81,19 @@ final class RulesTest extends TestCase
             rmdir($dir);
         }
     }
+
+    public function testVolatilityCanBeDeclaredInCouplingMeterYaml(): void
+    {
+        // ドメイン分析で分かっている変動性（原著の 1 から 10）を注入できる
+        $rules = Rules::fromArray(['volatility' => ['App\\Domain\\Order' => 10, 'App\\Legacy' => 1]]);
+
+        $this->assertSame(['App\\Domain\\Order' => 10, 'App\\Legacy' => 1], $rules->volatility());
+    }
+
+    public function testVolatilityOutsideTheScaleIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        Rules::fromArray(['volatility' => ['App\\Domain' => 11]]);
+    }
 }

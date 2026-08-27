@@ -9,6 +9,7 @@ use Techtrain\CouplingMeter\Analyzer;
 use Techtrain\CouplingMeter\BalanceReport;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Rules;
 use Techtrain\CouplingMeter\Strength;
 
 final class PairTest extends TestCase
@@ -57,7 +58,7 @@ final class PairTest extends TestCase
         $this->assertSame([
             'from', 'to', 'strength', 'kinds', 'references', 'samples', 'distance', 'shared_kernel', 'async_only',
             'ownership_overlap', 'evolution_ratio', 'inferred_volatility_from', 'volatility_inherited',
-            'distant_owners', 'volatility', 'quadrant', 'intended', 'balanced', 'co_changes', 'co_change_rate',
+            'distant_owners', 'volatility', 'volatility_declared', 'quadrant', 'intended', 'balanced', 'co_changes', 'co_change_rate',
             'strength_value', 'distance_value', 'volatility_value', 'modularity', 'balance',
         ], array_keys($array));
         $this->assertSame('intrusive', $array['strength']);
@@ -72,5 +73,26 @@ final class PairTest extends TestCase
             }
         }
         $this->fail("{$from} -> {$to} が見つからない");
+    }
+
+    public function testDeclaredVolatilityOverridesTheObservedOne(): void
+    {
+        // git 履歴がなくても、注入した変動性が相手側（to）に効く
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer->run();
+        $rules = Rules::fromArray(['volatility' => ['Fixture\\Domain' => 10]]);
+        $report = new BalanceReport($analyzer, new ModuleMap(2), null, __DIR__ . '/fixtures/app', $rules);
+        $report->build();
+
+        foreach ($report->pairs() as $pair) {
+            if ($pair->from === 'Fixture\\Http' && $pair->to === 'Fixture\\Domain') {
+                $this->assertSame(4, $pair->volatility);
+                $this->assertSame(10, $pair->volatilityValue);
+                $this->assertTrue($pair->volatilityDeclared);
+
+                return;
+            }
+        }
+        $this->fail('Fixture\\Http -> Fixture\\Domain が見つからない');
     }
 }
