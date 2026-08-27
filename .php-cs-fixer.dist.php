@@ -16,7 +16,7 @@ $finder = PhpCsFixer\Finder::create()
 return (new PhpCsFixer\Config())
     ->setRules([
         '@PSR12' => true,
-        '@PHP82Migration' => true,
+        '@PHP8x2Migration' => true,
         'array_syntax' => ['syntax' => 'short'],
         'blank_line_after_namespace' => true,
         'blank_line_after_opening_tag' => true,
@@ -30,7 +30,7 @@ return (new PhpCsFixer\Config())
         'no_trailing_whitespace' => true,
         'no_whitespace_in_blank_line' => true,
         'return_type_declaration' => ['space_before' => 'none'],
-        'visibility_required' => ['elements' => ['method', 'property']],
+        'modifier_keywords' => ['elements' => ['method', 'property']],
         'native_function_invocation' => [
             'include' => ['@compiler_optimized'],
             'scope' => 'namespaced',

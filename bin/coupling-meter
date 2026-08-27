@@ -41,8 +41,8 @@ if ($options->help || $options->path === null) {
           --exclude   除外ディレクトリをカンマ区切りで追加
           --json      機械可読な JSON で出力する
           --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
-      --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
-                  省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
+          --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
+                      省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
 
         TEXT);
     exit($options->path === null && !$options->help ? 1 : 0);
