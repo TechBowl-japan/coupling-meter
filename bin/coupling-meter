@@ -9,6 +9,7 @@ use Techtrain\CouplingMeter\GitHistory;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Options;
 use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Rules;
 
 foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
     if (file_exists($autoload)) {
@@ -40,6 +41,8 @@ if ($options->help || $options->path === null) {
           --exclude   除外ディレクトリをカンマ区切りで追加
           --json      機械可読な JSON で出力する
           --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
+      --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
+                  省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
 
         TEXT);
     exit($options->path === null && !$options->help ? 1 : 0);
@@ -63,7 +66,14 @@ $analyzer->run();
 $git = new GitHistory($root, $since);
 $hasGit = $git->load();
 
-$report = new BalanceReport($analyzer, new ModuleMap($depth), $hasGit ? $git : null, $root);
+try {
+    $rules = Rules::discover($root, $options->rules);
+} catch (\InvalidArgumentException $e) {
+    fwrite(STDERR, $e->getMessage() . "\n");
+    exit(1);
+}
+
+$report = new BalanceReport($analyzer, new ModuleMap($depth), $hasGit ? $git : null, $root, $rules);
 $report->build();
 
 $pairs = $report->pairs();
@@ -166,6 +176,7 @@ foreach (array_slice($pairs, 0, $top) as $pair) {
 if ($findings !== []) {
     $labels = [
         'mutual' => '互いに依存',
+        'inverted' => '逆転済みの依存',
         'tight-coupling' => '強度も距離も高い',
         'low-cohesion' => '近いのに関係が薄い',
         'hidden' => '型に出ない結合',

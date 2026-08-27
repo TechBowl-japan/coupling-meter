@@ -45,19 +45,19 @@ final class RulesTest extends TestCase
         $dir = sys_get_temp_dir() . '/coupling-meter-rules-' . bin2hex(random_bytes(4));
         mkdir($dir);
         file_put_contents($dir . '/deptrac.yaml', <<<YAML
-        deptrac:
-          layers:
-            - name: A
-              collectors:
-                - type: classLike
-                  value: '^X\\\\A\\\\'
-            - name: B
-              collectors:
-                - type: classLike
-                  value: '^X\\\\B\\\\'
-          ruleset:
-            A: [B]
-        YAML);
+            deptrac:
+              layers:
+                - name: A
+                  collectors:
+                    - type: classLike
+                      value: '^X\\\\A\\\\'
+                - name: B
+                  collectors:
+                    - type: classLike
+                      value: '^X\\\\B\\\\'
+              ruleset:
+                A: [B]
+            YAML);
         try {
             $rules = Rules::discover($dir);
 

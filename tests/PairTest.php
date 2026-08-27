@@ -55,7 +55,7 @@ final class PairTest extends TestCase
         $this->assertSame([
             'from', 'to', 'strength', 'kinds', 'references', 'samples', 'distance', 'shared_kernel',
             'ownership_overlap', 'evolution_ratio', 'inferred_volatility_from', 'volatility_inherited',
-            'distant_owners', 'volatility', 'quadrant', 'balanced', 'co_changes', 'co_change_rate',
+            'distant_owners', 'volatility', 'quadrant', 'intended', 'balanced', 'co_changes', 'co_change_rate',
             'strength_value', 'distance_value', 'volatility_value', 'modularity', 'balance',
         ], array_keys($array));
         $this->assertSame('intrusive', $array['strength']);
