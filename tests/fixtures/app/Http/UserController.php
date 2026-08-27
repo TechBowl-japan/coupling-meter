@@ -29,6 +29,14 @@ final class UserController
         return $factory->create($name);
     }
 
+    public function queue(int $id): void
+    {
+        // 非同期の呼び出し。相手の実行は別のプロセスで、時間的にも離れている
+        \Fixture\Jobs\SendWelcome::dispatch($id);
+        dispatch(new \Fixture\Jobs\AuditJob());
+        event(new \Fixture\Events\UserCreated());
+    }
+
     public function legacyClassName(): string
     {
         return 'Fixture\Domain\LegacyUser';

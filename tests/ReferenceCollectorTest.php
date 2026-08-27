@@ -141,4 +141,14 @@ final class ReferenceCollectorTest extends TestCase
         $this->assertSame(1, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Domain\\LegacyBase', 'extends'));
         $this->assertSame(1, $this->countReferences('Fixture\\Http\\ScopeController', 'Fixture\\Support\\Audit', 'use-trait'));
     }
+
+    public function testQueuedDispatchIsAsync(): void
+    {
+        // Job::dispatch()、dispatch(new Job)、event(new Event) は async-dispatch。強度は functional のまま
+        foreach (['Fixture\\Jobs\\SendWelcome', 'Fixture\\Jobs\\AuditJob', 'Fixture\\Events\\UserCreated'] as $target) {
+            $this->assertSame(1, $this->countReferences('Fixture\\Http\\UserController', $target, 'async-dispatch'), $target);
+            $this->assertSame(1, $this->countReferences('Fixture\\Http\\UserController', $target), "{$target} が new や static-call と二重に数えられている");
+            $this->assertSame(Strength::Functional, $this->find('Fixture\\Http\\UserController', $target)?->strength);
+        }
+    }
 }
