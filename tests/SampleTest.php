@@ -37,6 +37,10 @@ final class SampleTest extends TestCase
         $this->assertArrayHasKey('line', $sample);
         $this->assertArrayHasKey('kind', $sample);
         $this->assertArrayHasKey('strength', $sample);
+        // 何が漏れているか・どう直すかを、AI や人が --samples を読むだけで分かるようにする
+        $this->assertArrayHasKey('why', $sample);
+        $this->assertArrayHasKey('next', $sample);
+        $this->assertNotSame('', $sample['why']);
         $this->assertGreaterThan(0, $sample['line']);
     }
 
