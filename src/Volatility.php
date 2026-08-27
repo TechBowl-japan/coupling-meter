@@ -9,6 +9,7 @@ namespace Techtrain\CouplingMeter;
  *
  * 上位 10% を 4、上位 30% を 3、上位 60% を 2、残りを 1 とする。
  * 同じ回数のモジュールは平均順位を取る。全員が同じなら（単独モジュールを含む）順位に意味がないので中位に置く。
+ * 変更回数 0 のモジュールは順位に関係なく 1。
  */
 final class Volatility
 {
@@ -18,7 +19,8 @@ final class Volatility
     public static function quartile(array $counts, int $value): int
     {
         $total = count($counts);
-        if ($total === 0) {
+        // 一度も変わっていないなら、他がどうであれ変動性は最も低い。
+        if ($total === 0 || $value === 0) {
             return 1;
         }
         // 全員が同じ回数なら順位に意味がない。中位に置く。

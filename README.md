@@ -27,7 +27,7 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 |---|---|---|
 | strength | AST | contract、model、functional、intrusive の 4 段階。相手のどこまで知っているか |
 | distance | 名前空間と git | 2 つのモジュールの最も近い共通の祖先から出す。多くのモジュールが依存する相手は共有カーネルとみなして 1 段割り引き、触っている人が分かれている組は 1 段遠くする |
-| volatility | git log | そのモジュールが実際に変更されたコミット数の分位。同じ回数のモジュールは平均順位を取り、全員が同じなら中位に置く |
+| volatility | git log | そのモジュールが実際に変更されたコミット数の分位。期間内に変わらなかったモジュールも 0 回として分布に含め、その変動性は 1。同じ回数のモジュールは平均順位を取り、全員が同じなら中位に置く |
 | 推定変動性 | 上記の組み合わせ | 依存先の変動性を強度に応じて受け取った値。原著 9.5 の推定変動性 |
 | 変更の中身 | git log | Conventional Commits の prefix から、機能を足す変更（feat、perf）、修正（fix）、整備（refactor ほか）に分ける |
 | co-change | git log | 2 つのモジュールが同じコミットで変わった割合 |

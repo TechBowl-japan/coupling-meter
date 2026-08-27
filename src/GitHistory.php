@@ -171,10 +171,4 @@ final class GitHistory
 
         return $result;
     }
-
-    /** 解析対象の PHP ファイルを 1 つ以上触ったコミットの数。 */
-    public function commitCount(): int
-    {
-        return count(array_filter($this->commits, static fn (array $files): bool => $files !== []));
-    }
 }

@@ -32,6 +32,9 @@ final class BalanceReport
 
     private int $classCount = 0;
 
+    /** index に現れた全モジュールの数。組に現れないモジュールも含む。 */
+    private int $moduleCount = 0;
+
     private int $referenceCount = 0;
 
     private int $commitCount = 0;
@@ -53,15 +56,18 @@ final class BalanceReport
 
         // 1 ファイルに複数モジュールのクラスが同居していれば、そのファイルの変更はどのモジュールにも数える。
         $fileToModule = [];
+        $allModules = [];
         foreach ($index as $fqcn => $entry) {
             $relative = $this->relative($entry['file']);
             $module = $this->modules->moduleOf($fqcn);
+            $allModules[$module] = true;
             if (!in_array($module, $fileToModule[$relative] ?? [], true)) {
                 $fileToModule[$relative][] = $module;
             }
         }
+        $this->moduleCount = count($allModules);
 
-        $this->buildVolatility($fileToModule);
+        $this->buildVolatility($fileToModule, array_keys($allModules));
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
         if ($this->git !== null) {
             $this->ownership = new Ownership($this->git->moduleAuthors($fileToModule));
@@ -194,17 +200,30 @@ final class BalanceReport
         });
     }
 
-    /** @param array<string, list<string>> $fileToModule */
-    private function buildVolatility(array $fileToModule): void
+    /**
+     * 期間内に変わらなかったモジュールも 0 回として分布に含める。
+     * 変わったモジュールだけで順位を付けると、少数の変更が全員「最上位」になってしまう。
+     *
+     * @param array<string, list<string>> $fileToModule
+     * @param list<string> $allModules
+     */
+    private function buildVolatility(array $fileToModule, array $allModules): void
     {
         if ($this->git === null) {
             return;
         }
 
-        $this->commitCount = $this->git->commitCount();
         $moduleCommits = $this->git->moduleCommits($fileToModule);
-        foreach ($moduleCommits as $module => $commits) {
-            $this->moduleCommitCount[$module] = count($commits);
+
+        // 解析対象のモジュールのどれかを変えたコミットだけを「解析コミット」として数える。
+        $touched = [];
+        foreach ($moduleCommits as $commits) {
+            $touched += $commits;
+        }
+        $this->commitCount = count($touched);
+
+        foreach ($allModules as $module) {
+            $this->moduleCommitCount[$module] = count($moduleCommits[$module] ?? []);
         }
 
         $counts = array_values($this->moduleCommitCount);
@@ -381,16 +400,10 @@ final class BalanceReport
     /** @return array<string, int|float> */
     public function stats(): array
     {
-        $modules = [];
-        foreach ($this->pairs as $pair) {
-            $modules[$pair->from] = true;
-            $modules[$pair->to] = true;
-        }
-
         return [
             'classes' => $this->classCount,
             'references' => $this->referenceCount,
-            'modules' => count($modules),
+            'modules' => $this->moduleCount,
             'pairs' => count($this->pairs),
             'commits' => $this->commitCount,
         ];

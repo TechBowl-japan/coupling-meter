@@ -53,19 +53,6 @@ final class GitHistoryTest extends TestCase
         $this->assertArrayHasKey('App\Order', $commits);
     }
 
-    public function testCommitCountOnlyIncludesCommitsThatTouchPhpFiles(): void
-    {
-        file_put_contents($this->repo . '/README.md', '# doc');
-        $this->git('add -A');
-        $this->git('commit -q -m "docs: readme"');
-
-        $history = new GitHistory($this->repo, '10 years ago');
-        $history->load();
-
-        // README だけのコミットは解析に使わないので数えない
-        $this->assertSame(1, $history->commitCount());
-    }
-
     public function testFileWithClassesFromSeveralModulesCountsForEach(): void
     {
         $history = new GitHistory($this->repo, '10 years ago');
