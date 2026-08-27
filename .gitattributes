@@ -1,0 +1,9 @@
+# Packagist の dist（zip）に含めないもの
+/.github            export-ignore
+/tests              export-ignore
+/.coderabbit.yaml   export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/phpstan.neon       export-ignore
+/phpunit.xml        export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
