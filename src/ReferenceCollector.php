@@ -16,6 +16,10 @@ final class ReferenceCollector extends NodeVisitorAbstract
     /** コンテナに生成を任せる関数。Laravel と Symfony でよく使われるもの。 */
     private const CONTAINER_FUNCTIONS = ['app', 'resolve'];
 
+    /** 非同期の起動。Job::dispatch()、dispatch(new Job)、event(new Event) のような形。 */
+    private const ASYNC_STATIC_METHODS = ['dispatch', 'dispatchafterresponse'];
+    private const ASYNC_FUNCTIONS = ['dispatch', 'event', 'broadcast'];
+
     /** コンテナのメソッド。$this->app->make(Foo::class) のような形。 */
     private const CONTAINER_METHODS = ['make', 'makewith', 'bind', 'singleton', 'instance'];
 
@@ -224,9 +228,27 @@ final class ReferenceCollector extends NodeVisitorAbstract
 
         if ($node instanceof Node\Expr\StaticCall && $node->class instanceof Node\Name) {
             $target = $node->class->toString();
-            $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, 'static-call', $line);
+            // Job::dispatch() はキューに積む。呼び出しではあるが実行は別のプロセス。
+            $async = $node->name instanceof Node\Identifier
+                && \in_array($node->name->toLowerString(), self::ASYNC_STATIC_METHODS, true);
+            $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, $async ? 'async-dispatch' : 'static-call', $line);
 
             return;
+        }
+
+        // dispatch(new Job) / event(new Event)。生成そのものより、非同期に渡している事実を記録する。
+        if ($node instanceof Node\Expr\FuncCall
+            && $node->name instanceof Node\Name
+            && \in_array(strtolower($node->name->toString()), self::ASYNC_FUNCTIONS, true)
+        ) {
+            $first = $node->getArgs()[0] ?? null;
+            if ($first !== null && $first->value instanceof Node\Expr\New_ && $first->value->class instanceof Node\Name) {
+                $target = $first->value->class->toString();
+                $this->consumed->attach($first->value);
+                $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, 'async-dispatch', $line);
+
+                return;
+            }
         }
 
         if ($node instanceof Node\Expr\StaticPropertyFetch && $node->class instanceof Node\Name) {

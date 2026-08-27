@@ -12,8 +12,8 @@ final class PackagesTest extends TestCase
     public function testComposerFilesDefinePackagesByPsr4Prefix(): void
     {
         $dir = sys_get_temp_dir() . '/coupling-meter-pkg-' . bin2hex(random_bytes(4));
-        mkdir($dir . '/packages/billing', 0777, true);
-        mkdir($dir . '/vendor/acme/lib', 0777, true);
+        mkdir($dir . '/packages/billing', 0o777, true);
+        mkdir($dir . '/vendor/acme/lib', 0o777, true);
         file_put_contents($dir . '/composer.json', json_encode(['name' => 'shop/app', 'autoload' => ['psr-4' => ['App\\' => 'app/']]]));
         file_put_contents($dir . '/packages/billing/composer.json', json_encode(['name' => 'shop/billing', 'autoload' => ['psr-4' => ['Billing\\' => 'src/']]]));
         // vendor は読まない
@@ -26,7 +26,7 @@ final class PackagesTest extends TestCase
             $this->assertNull($packages->packageOf('Acme\Thing'));
             $this->assertNull($packages->packageOf('Unknown\Thing'));
         } finally {
-            exec(sprintf('rm -rf %s', escapeshellarg($dir)));
+            exec(\sprintf('rm -rf %s', escapeshellarg($dir)));
         }
     }
 

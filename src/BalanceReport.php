@@ -56,6 +56,7 @@ final class BalanceReport
         private readonly ?GitHistory $git,
         private readonly string $root,
         private readonly ?Rules $rules = null,
+        private readonly ?Packages $packages = null,
     ) {
     }
 
@@ -156,7 +157,9 @@ final class BalanceReport
             $ownershipOverlap = $this->ownership?->overlap($from, $to) ?? 1.0;
             $distantOwners = $this->ownership?->isDistant($from, $to) ?? false;
 
-            $distance = Distance::of($this->modules, $from, $to, $shared, $distantOwners);
+            // キューやイベントでしかつながっていない組は、実行時の距離が遠い。
+            $asyncOnly = array_keys($entry['kinds']) === ['async-dispatch'];
+            $distance = Distance::of($this->modules, $from, $to, $shared, $distantOwners, $asyncOnly, $this->packages);
 
             $strengthHigh = $strength->value >= self::HIGH;
             $distanceHigh = $distance->isHigh();
@@ -185,6 +188,7 @@ final class BalanceReport
                 samples: Samples::pick($entry['samples'], 3),
                 distance: $distance->level,
                 sharedKernel: $shared,
+                asyncOnly: $asyncOnly,
                 ownershipOverlap: round($ownershipOverlap, 2),
                 evolutionRatio: $this->evolutionRatio($to),
                 inferredVolatilityFrom: $this->inferred->of($from),
