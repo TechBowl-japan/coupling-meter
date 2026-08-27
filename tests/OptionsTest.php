@@ -96,4 +96,16 @@ final class OptionsTest extends TestCase
 
         Options::parse(['/p', '--json', '--samples']);
     }
+
+    public function testSplitAndWeightOptions(): void
+    {
+        $options = Options::parse(['/p', '--split=50', '--weight-by-references']);
+
+        $this->assertSame(50, $options->split);
+        $this->assertTrue($options->weightByReferences);
+
+        $defaults = Options::parse(['/p']);
+        $this->assertSame(0, $defaults->split);
+        $this->assertFalse($defaults->weightByReferences);
+    }
 }
