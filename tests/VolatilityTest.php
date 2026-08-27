@@ -41,4 +41,17 @@ final class VolatilityTest extends TestCase
         $this->assertSame(4, Volatility::quartile($counts, 9));
         $this->assertSame(2, Volatility::quartile($counts, 1));
     }
+
+    public function testModulesThatNeverChangedAreNotVolatile(): void
+    {
+        // 期間内に一度も変わらなかったモジュールは、順位に関係なく最も低い
+        $this->assertSame(1, Volatility::quartile([1, 0, 0, 0], 0));
+        $this->assertSame(1, Volatility::quartile([0, 0], 0));
+    }
+
+    public function testUnchangedModulesStayInTheDistribution(): void
+    {
+        // 4 モジュール中 1 つだけ変わったなら、それは最上位。変わっていないモジュールを分布から外すと 1 件だけの分布になり中位に落ちてしまう
+        $this->assertSame(4, Volatility::quartile([1, 0, 0, 0], 1));
+    }
 }
