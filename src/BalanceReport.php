@@ -54,6 +54,7 @@ final class BalanceReport
         private readonly ModuleMap $modules,
         private readonly ?GitHistory $git,
         private readonly string $root,
+        private readonly ?Rules $rules = null,
     ) {
     }
 
@@ -191,6 +192,7 @@ final class BalanceReport
                 distantOwners: $distantOwners,
                 volatility: $volatility,
                 quadrant: $quadrant,
+                intended: $this->rules?->allows($from, $to) ?? false,
                 // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
                 balanced: ($strengthHigh xor $distanceHigh) || !$volatilityHigh,
                 coChanges: $coCommits,
@@ -275,6 +277,7 @@ final class BalanceReport
 
     /**
      * 数値の並びからは読み取りにくい型を名指しする。
+     * Rules で許可された方向の依存（intended）は、順位表には残すが指摘からは外す。
      *
      * @return list<array{type: string, pair: string, detail: string}>
      */
@@ -286,19 +289,46 @@ final class BalanceReport
         foreach ($this->pairs as $key => $pair) {
             $reverse = $this->pairs[$pair->to . ' -> ' . $pair->from] ?? null;
             $mutualKey = $this->coKey($pair->from, $pair->to);
-            if ($reverse !== null && !isset($seenMutual[$mutualKey])) {
+            if ($reverse !== null && !isset($seenMutual[$mutualKey]) && !$pair->intended && !$reverse->intended) {
                 $seenMutual[$mutualKey] = true;
-                $findings[] = [
-                    'type' => 'mutual',
-                    'pair' => $pair->from . ' <-> ' . $pair->to,
-                    'detail' => \sprintf(
-                        '互いに依存している（%s へ %d 箇所 / %s へ %d 箇所）',
-                        $pair->to,
-                        $pair->references,
-                        $pair->from,
-                        $reverse->references,
-                    ),
-                ];
+                // 片方が contract 止まりなら DIP で逆転済み。互いに依存しているのではなく、意図した形。
+                $inverted = match (true) {
+                    $pair->strength === Strength::Contract => $pair,
+                    $reverse->strength === Strength::Contract => $reverse,
+                    default => null,
+                };
+                if ($inverted !== null) {
+                    $other = $inverted === $pair ? $reverse : $pair;
+                    $findings[] = [
+                        'type' => 'inverted',
+                        'pair' => $inverted->key(),
+                        'detail' => \sprintf(
+                            'interface 経由（contract）で逆転している。相手からは %s で %d 箇所',
+                            $other->strength->label(),
+                            $other->references,
+                        ),
+                    ];
+                } else {
+                    [$first, $second] = $pair->from < $pair->to ? [$pair, $reverse] : [$reverse, $pair];
+                    $findings[] = [
+                        'type' => 'mutual',
+                        'pair' => $first->from . ' <-> ' . $first->to,
+                        'detail' => \sprintf(
+                            '互いに依存している（%s へ %s で %d 箇所 / %s へ %s で %d 箇所）',
+                            $first->to,
+                            $first->strength->label(),
+                            $first->references,
+                            $second->to,
+                            $second->strength->label(),
+                            $second->references,
+                        ),
+                    ];
+                }
+            }
+
+            // 設計として認めている方向の依存は、以下の指摘の対象にしない。
+            if ($pair->intended) {
+                continue;
             }
 
             $strength = $pair->strength;

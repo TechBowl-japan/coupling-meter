@@ -112,7 +112,8 @@ coupling-meter /path/to/project --depth=2
 
 | 種類 | 条件 | 読み方 |
 |---|---|---|
-| 互いに依存 | 双方向に参照がある | 層の分割が効いていない |
+| 互いに依存 | 双方向とも model 以上で参照している | 層の分割が効いていない |
+| 逆転済みの依存 | 双方向に参照があるが、片方は interface 経由（contract）だけ | DIP で逆転している。情報として出す |
 | 強度も距離も高い | 密結合の象限でバランスが崩れており、参照が 20 箇所以上 | 強度を下げるか、距離を縮める |
 | 近いのに関係が薄い | 低凝集の象限でバランスが崩れており、参照が 20 箇所以上 | 近くに置く理由を確認する |
 | 型に出ない結合 | 型の上は model 以下なのに、5 回以上かつ 30% 以上同時に変わる | 静的解析では見えない。設計の意図を確認する |
@@ -132,6 +133,23 @@ coupling-meter /path/to/project --depth=2
 | `--top` | 15 | 表示する組の数 |
 | `--json` | なし | 機械可読な出力。`--top` に関係なく全組を出す。`--samples` とは同時に指定できない |
 | `--samples` | なし | 組ごとの代表例をファイルと行つきで出す。AI に渡して判断させる用 |
+| `--rules` | 自動検出 | 意図した依存の許可ルール。省略時は root の `coupling-meter.yaml` / `deptrac.yaml` / `deptrac.config.yaml` を探す |
+
+## 意図した依存を指摘から外す
+
+DIP で逆転した `Application -> Infrastructure` や、設計上の `Adapter -> Http` のように、設計として認めている方向の依存は指摘の対象から外せる。
+順位表には残る（`--json` では `intended: true`）。
+
+deptrac を使っているなら、`deptrac.yaml` の `layers`（`classLike` の正規表現）と `ruleset` をそのまま読む。
+
+```yaml
+# coupling-meter.yaml（deptrac を使っていない場合）
+allow:
+  - 'App\Application -> App\Domain'
+  - 'App\Infrastructure -> App\*'
+```
+
+`*` はワイルドカード。左が依存する側、右が依存される側。
 
 ## 測らないもの
 

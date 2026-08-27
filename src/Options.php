@@ -15,7 +15,7 @@ final class Options
     public const DEFAULT_EXCLUDES = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
 
     /** 値が要るオプション */
-    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude'];
+    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules'];
 
     /** 値を取らないオプション */
     private const FLAGS = ['help', 'json', 'samples'];
@@ -34,6 +34,8 @@ final class Options
         public readonly bool $json,
         public readonly bool $samples,
         public readonly bool $help,
+        /** 許可ルールのファイル。null なら root の coupling-meter.yaml / deptrac.yaml を探す */
+        public readonly ?string $rules,
     ) {
     }
 
@@ -101,6 +103,7 @@ final class Options
             json: $flags['json'] ?? false,
             samples: $flags['samples'] ?? false,
             help: $flags['help'] ?? false,
+            rules: $values['rules'] ?? null,
         );
     }
 

@@ -34,6 +34,8 @@ final class Pair
         public readonly int $volatility,
         /** tight-coupling / low-cohesion / high-cohesion / loose-coupling */
         public readonly string $quadrant,
+        /** Rules（deptrac / allow）で設計として認められている方向か */
+        public readonly bool $intended,
         public readonly bool $balanced,
         public readonly int $coChanges,
         public readonly float $coChangeRate,
@@ -70,6 +72,7 @@ final class Pair
             'distant_owners' => $this->distantOwners,
             'volatility' => $this->volatility,
             'quadrant' => $this->quadrant,
+            'intended' => $this->intended,
             'balanced' => $this->balanced,
             'co_changes' => $this->coChanges,
             'co_change_rate' => $this->coChangeRate,
