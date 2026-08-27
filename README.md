@@ -70,20 +70,28 @@ bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--
 ```
 
 ```
-coupling-meter /path/to/project
-  クラス 6530 / 参照 46710 / モジュール 22 / 組 111 / 解析コミット 5317
+coupling-meter /path/to/project --depth=2
+  クラス 1840 / 参照 12530 / モジュール 22 / 組 111 / 解析コミット 2317
 
   バランスが崩れている組: 20 / 111
 
 直す順（均衡度の低い順。max(|強度 - 距離|, 10 - 変動性) + 1）
    BAL  STRENGTH    STR DIST  VOL  CO-CHG  MODULE PAIR
-     1  functional    8    7   10     40%  App\Observers -> Package\Domain
-     3  model         3    2   10      7%  App\Providers -> App\Filament
+     1  model         3    3   10     48%  Shop\Checkout -> Shop\Catalog
+     2  functional    8    7   10     40%  Billing\Invoice -> Shop\Catalog
+     4  intrusive    10    7   10     25%  Legacy\Reports -> Shop\Orders
 
 指摘
-  [型に出ない結合] App\Providers -> App\Policies
+  [型に出ない結合] Shop\Checkout -> Shop\Catalog
       型の上は model だが、16 回のコミットで同時に変わっている（48%）
+  [踏み込んだ依存が動いている] Legacy\Reports -> Shop\Orders
+      内部に踏み込んだ依存が 31 箇所あり、25% のコミットで同時に変わっている
 ```
+
+読み方の例。`Shop\Checkout -> Shop\Catalog` は型の上では model 結合で、Catalog は多くのモジュールが使う共有カーネルとして距離も近い（3）。
+強度も距離も低い低凝集の組だが、Catalog がよく変わり（10）、しかも 48% のコミットで一緒に変わっているので、均衡度は最低の 1 になる。
+`Legacy\Reports -> Shop\Orders` は継承や trait で Orders の内部に踏み込んでおり（10）、名前空間も担当者も離れている（7）。
+均衡度は 4 で上の 2 つより高いが、intrusive かつ同時変更 25% なので指摘としては最も直す価値が高い。
 
 ## 指摘の種類
 
