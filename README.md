@@ -62,12 +62,27 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 
 相手が interface または抽象クラスなら、new とメソッド呼び出しをどちらも contract に落とす。
 
+## インストール
+
+```bash
+composer require --dev techtrain/coupling-meter
+```
+
+計測したいプロジェクトの外から使うなら、グローバルに入れてもよい。
+
+```bash
+composer global require techtrain/coupling-meter
+```
+
+PHP 8.2 以上。解析対象のプロジェクトは PHP のバージョンを問わない（php-parser が読める構文であればよい）。
+
 ## 使い方
 
 ```bash
-composer install
-bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
+vendor/bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
 ```
+
+リポジトリを clone して使う場合は `composer install` のあと `bin/coupling-meter` を実行する。
 
 ```
 coupling-meter /path/to/project --depth=2
