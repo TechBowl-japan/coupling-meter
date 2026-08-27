@@ -98,7 +98,7 @@ final class BalanceReport
         }
 
         // 参照をモジュールの組にまとめる。強度は最も強いもの、代表例は後で選ぶ。
-        /** @var array<string, array{from: string, to: string, strength: Strength, kinds: array<string, int>, references: int, samples: list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, weight: int}>}> $collected */
+        /** @var array<string, array{from: string, to: string, strength: Strength, kinds: array<string, int>, references: int, samples: list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, why: string, next: string, weight: int}>}> $collected */
         $collected = [];
         foreach ($references as $reference) {
             $from = $this->modules->moduleOf($reference->from);
@@ -126,6 +126,8 @@ final class BalanceReport
                 'strength' => $reference->strength->label(),
                 'from' => $reference->from,
                 'to' => $reference->to,
+                'why' => Hints::for($reference->kind)->why,
+                'next' => Hints::for($reference->kind)->next,
                 'weight' => $reference->strength->value,
             ];
             $collected[$key] = $entry;

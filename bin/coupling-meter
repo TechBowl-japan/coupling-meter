@@ -107,13 +107,15 @@ if ($options->samples) {
         ));
         foreach ($pair->samples as $sample) {
             fwrite(STDOUT, sprintf(
-                "- %s:%d  %s（%s）  %s -> %s\n",
+                "- %s:%d  %s（%s）  %s -> %s\n    なぜ: %s\n    次に: %s\n",
                 $sample['file'],
                 $sample['line'],
                 $sample['strength'],
                 $sample['kind'],
                 $sample['from'],
                 $sample['to'],
+                $sample['why'],
+                $sample['next'],
             ));
         }
         fwrite(STDOUT, "\n");

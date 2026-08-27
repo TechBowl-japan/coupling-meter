@@ -38,4 +38,14 @@ final class BinTest extends TestCase
         $this->assertIsArray($payload);
         $this->assertArrayHasKey('pairs', $payload);
     }
+
+    public function testSamplesOutputCarriesHints(): void
+    {
+        exec(\sprintf('%s %s %s --samples --top=1 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg(self::BIN), escapeshellarg(__DIR__ . '/fixtures/app')), $output, $status);
+        $text = implode("\n", $output);
+
+        $this->assertSame(0, $status, $text);
+        // 代表例の直後に、理由と次の一手が 1 行ずつ付く
+        $this->assertMatchesRegularExpression('/^- .+:\\d+  .+\\n    なぜ: .+\\n    次に: .+$/m', $text);
+    }
 }

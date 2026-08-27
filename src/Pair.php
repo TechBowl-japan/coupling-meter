@@ -13,7 +13,7 @@ final class Pair
 {
     /**
      * @param array<string, int> $kinds 参照の種類 => 件数
-     * @param list<array{file: string, line: int, kind: string, strength: string, from: string, to: string}> $samples 代表例
+     * @param list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, why: string, next: string}> $samples 代表例
      */
     public function __construct(
         public readonly string $from,
