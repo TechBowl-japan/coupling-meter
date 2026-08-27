@@ -32,8 +32,10 @@ final class Pair
         public readonly int $inferredVolatilityFrom,
         public readonly bool $volatilityInherited,
         public readonly bool $distantOwners,
-        /** 相手の観測された変動性（1 から 4） */
+        /** 相手の変動性（1 から 4）。観測値か、宣言された値 */
         public readonly int $volatility,
+        /** 相手の変動性が coupling-meter.yaml で宣言されたものか */
+        public readonly bool $volatilityDeclared,
         /** tight-coupling / low-cohesion / high-cohesion / loose-coupling */
         public readonly string $quadrant,
         /** Rules（deptrac / allow）で設計として認められている方向か */
@@ -74,6 +76,7 @@ final class Pair
             'volatility_inherited' => $this->volatilityInherited,
             'distant_owners' => $this->distantOwners,
             'volatility' => $this->volatility,
+            'volatility_declared' => $this->volatilityDeclared,
             'quadrant' => $this->quadrant,
             'intended' => $this->intended,
             'balanced' => $this->balanced,

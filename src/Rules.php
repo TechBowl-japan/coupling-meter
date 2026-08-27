@@ -14,7 +14,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * 2 つの書き方を受け付ける。
  *   - deptrac.yaml の layers（classLike の正規表現）と ruleset
- *   - coupling-meter.yaml の allow（"From -> To"。* をワイルドカードにできる）
+ *   - coupling-meter.yaml の allow（"From -> To"。* をワイルドカードにできる）と volatility（モジュール => 1 から 10）
  */
 final class Rules
 {
@@ -26,6 +26,9 @@ final class Rules
 
     /** @var array<string, list<string>> 層 => 依存してよい層 */
     private array $ruleset = [];
+
+    /** @var array<string, int> モジュール => 原著の目盛り（1 から 10）で宣言された変動性 */
+    private array $volatility = [];
 
     private function __construct()
     {
@@ -88,7 +91,28 @@ final class Rules
             $rules->allowed[] = ['from' => self::glob($from), 'to' => self::glob($to)];
         }
 
+        $volatility = $config['volatility'] ?? [];
+        if (!\is_array($volatility)) {
+            throw new \InvalidArgumentException('volatility は「モジュール: 1 から 10」の対応で書いてください');
+        }
+        foreach ($volatility as $module => $value) {
+            if (!\is_string($module) || !\is_int($value) || $value < 1 || $value > 10) {
+                throw new \InvalidArgumentException("volatility は 1 から 10 の整数で書いてください: {$module}");
+            }
+            $rules->volatility[$module] = $value;
+        }
+
         return $rules;
+    }
+
+    /**
+     * ドメイン分析で分かっている変動性。git の観測値より優先する。
+     *
+     * @return array<string, int> モジュール => 1 から 10
+     */
+    public function volatility(): array
+    {
+        return $this->volatility;
     }
 
     /**
@@ -178,6 +202,7 @@ final class Rules
             $ruleset[$layer] = array_values(array_unique([...($ruleset[$layer] ?? []), ...$targets]));
         }
         $merged->ruleset = $ruleset;
+        $merged->volatility = [...$this->volatility, ...$other->volatility];
 
         return $merged;
     }

@@ -31,6 +31,9 @@ final class BalanceReport
     /** @var array<string, int> */
     private array $volatilityScore = [];
 
+    /** @var array<string, int> モジュール => 宣言された変動性（原著の 1 から 10） */
+    private array $declaredVolatility = [];
+
     /** @var array<string, int> */
     private array $moduleCommitCount = [];
 
@@ -81,6 +84,12 @@ final class BalanceReport
         $this->moduleCount = \count($allModules);
 
         $this->buildVolatility($fileToModule, array_keys($allModules));
+
+        // ドメイン分析で宣言された変動性は、git の観測値より優先する。
+        foreach ($this->rules?->volatility() ?? [] as $module => $scale) {
+            $this->declaredVolatility[$module] = $scale;
+            $this->volatilityScore[$module] = Volatility::levelOf($scale);
+        }
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
         if ($this->git !== null) {
             $this->ownership = new Ownership($this->git->moduleAuthors($fileToModule));
@@ -177,7 +186,7 @@ final class BalanceReport
             // 原著 10.3 の均衡結合方程式。3 つの次元を 1 から 10 の目盛りに載せて計算する。
             $strengthValue = BalanceEquation::strengthValue($strength);
             $distanceValue = $distance->scale;
-            $volatilityValue = BalanceEquation::volatilityValue($volatility);
+            $volatilityValue = $this->declaredVolatility[$to] ?? BalanceEquation::volatilityValue($volatility);
 
             $this->pairs[$key] = new Pair(
                 from: $from,
@@ -195,6 +204,7 @@ final class BalanceReport
                 volatilityInherited: $this->inferred->isInherited($from),
                 distantOwners: $distantOwners,
                 volatility: $volatility,
+                volatilityDeclared: isset($this->declaredVolatility[$to]),
                 quadrant: $quadrant,
                 intended: $this->rules?->allows($from, $to) ?? false,
                 // BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
@@ -234,6 +244,7 @@ final class BalanceReport
         }
 
         $moduleCommits = $this->git->moduleCommits($fileToModule);
+        $changeKinds = $this->git->moduleChangeKinds($fileToModule);
 
         // 解析対象のモジュールのどれかを変えたコミットだけを「解析コミット」として数える。
         $touched = [];
@@ -242,12 +253,15 @@ final class BalanceReport
         }
         $this->commitCount = \count($touched);
 
+        // 変動性の順位には、変更の種類で重み付けした回数を使う。整備ばかりのモジュールを「よく変わる」と見ないため。
+        $weighted = [];
         foreach ($allModules as $module) {
             $this->moduleCommitCount[$module] = \count($moduleCommits[$module] ?? []);
+            $weighted[$module] = Volatility::weightedCount($changeKinds[$module] ?? []);
         }
 
-        $counts = array_values($this->moduleCommitCount);
-        foreach ($this->moduleCommitCount as $module => $count) {
+        $counts = array_values($weighted);
+        foreach ($weighted as $module => $count) {
             $this->volatilityScore[$module] = Volatility::quartile($counts, $count);
         }
     }
