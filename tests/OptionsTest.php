@@ -108,4 +108,12 @@ final class OptionsTest extends TestCase
         $this->assertSame(0, $defaults->split);
         $this->assertFalse($defaults->weightByReferences);
     }
+
+    public function testCodeownersPathIsParsed(): void
+    {
+        $options = Options::parse(['/p', '--codeowners=.github/CODEOWNERS']);
+
+        $this->assertSame('.github/CODEOWNERS', $options->codeowners);
+        $this->assertNull(Options::parse(['/p'])->codeowners);
+    }
 }

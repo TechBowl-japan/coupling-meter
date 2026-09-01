@@ -49,6 +49,8 @@ final class Pair
         public readonly int $volatilityValue,
         public readonly int $modularity,
         public readonly int $balance,
+        /** 両方のモジュールに CODEOWNERS の所有者があり、ownership_overlap がその宣言で出ているか */
+        public readonly bool $ownersDeclared = false,
     ) {
     }
 
@@ -75,6 +77,7 @@ final class Pair
             'inferred_volatility_from' => $this->inferredVolatilityFrom,
             'volatility_inherited' => $this->volatilityInherited,
             'distant_owners' => $this->distantOwners,
+            'owners_declared' => $this->ownersDeclared,
             'volatility' => $this->volatility,
             'volatility_declared' => $this->volatilityDeclared,
             'quadrant' => $this->quadrant,

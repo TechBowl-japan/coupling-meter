@@ -63,4 +63,41 @@ final class OwnershipTest extends TestCase
         $this->assertTrue($ownership->isDistant('A', 'B'));
         $this->assertFalse($ownership->isDistant('A', 'A'));
     }
+
+    public function testDeclaredOwnersTakePriorityOverAuthors(): void
+    {
+        // 同じ人が両方を書いていても、CODEOWNERS で別のチームに振られていれば離れている
+        $ownership = new Ownership(
+            ['A' => ['taro' => 10], 'B' => ['taro' => 10]],
+            ['A' => ['@org/a'], 'B' => ['@org/b']],
+        );
+
+        $this->assertSame(0.0, $ownership->overlap('A', 'B'));
+        $this->assertTrue($ownership->isDistant('A', 'B'));
+        $this->assertTrue($ownership->isDeclared('A'));
+    }
+
+    public function testModulesWithoutDeclarationFallBackToAuthors(): void
+    {
+        $ownership = new Ownership(
+            ['A' => ['taro' => 10], 'B' => ['hanako' => 10]],
+            ['A' => ['@org/a']],
+        );
+
+        // B に宣言がないので、A も宣言ではなく著者で比べる。taro と hanako は重ならない
+        $this->assertSame(0.0, $ownership->overlap('A', 'B'));
+        $this->assertFalse($ownership->isDeclared('B'));
+    }
+
+    public function testDeclaredOwnersAreComparedAsTeams(): void
+    {
+        // 両方が同じチームなら、著者が誰であれ近い
+        $ownership = new Ownership(
+            ['A' => ['taro' => 10], 'B' => ['hanako' => 10]],
+            ['A' => ['@org/core'], 'B' => ['@org/core']],
+        );
+
+        $this->assertSame(1.0, $ownership->overlap('A', 'B'));
+        $this->assertFalse($ownership->isDistant('A', 'B'));
+    }
 }

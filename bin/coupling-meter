@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Techtrain\CouplingMeter\Analyzer;
 use Techtrain\CouplingMeter\BalanceReport;
+use Techtrain\CouplingMeter\CodeOwners;
 use Techtrain\CouplingMeter\GitHistory;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Options;
@@ -44,6 +45,9 @@ if ($options->help || $options->path === null) {
           --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
           --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
                       省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
+          --codeowners
+                      所有者の宣言（CODEOWNERS）。省略時は root / .github / docs / .gitlab の CODEOWNERS を探す。
+                      あれば git の著者より優先して、担当が分かれている組の距離に使う
           --split     この数を超えるクラスを持つ名前空間は 1 段深く切る（既定 0 = 切らない）
           --weight-by-references
                       順位づけを参照数の対数で重み付けする
@@ -72,13 +76,14 @@ $hasGit = $git->load();
 
 try {
     $rules = Rules::discover($root, $options->rules);
+    $codeOwners = CodeOwners::discover($root, $options->codeowners);
 } catch (\InvalidArgumentException $e) {
     fwrite(STDERR, $e->getMessage() . "\n");
     exit(1);
 }
 
 $modules = ModuleMap::autoSplit($depth, array_keys($analyzer->index()), $options->split);
-$report = new BalanceReport($analyzer, $modules, $hasGit ? $git : null, $root, $rules, Packages::fromRoot($root), $options->weightByReferences);
+$report = new BalanceReport($analyzer, $modules, $hasGit ? $git : null, $root, $rules, Packages::fromRoot($root), $options->weightByReferences, $codeOwners);
 $report->build();
 
 $pairs = $report->pairs();
@@ -233,6 +238,6 @@ if ($changeKinds !== []) {
 
 fwrite(STDOUT, "\n" . $dim('BAL は均衡度。1 が最も複雑性に傾き、10 が最もモジュラー。原著 10.3 の式による。') . "\n");
 fwrite(STDOUT, $dim('STR / DIST / VOL は 1 から 10 の目盛り。著者は「これは正確な科学ではない」と断っている。') . "\n");
-fwrite(STDOUT, $dim('DIST は名前空間の共通の祖先から出し、触っている人が分かれている組は 1 段遠くしている。') . "\n");
+fwrite(STDOUT, $dim('DIST は名前空間の共通の祖先から出し、担当が分かれている組（CODEOWNERS の所有者、なければ git の著者）は 1 段遠くしている。') . "\n");
 fwrite(STDOUT, $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
 fwrite(STDOUT, $dim('「バランスが崩れている組」は BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY が偽になる組。--json の balanced で組ごとに見られる。') . "\n\n");
