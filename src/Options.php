@@ -15,7 +15,7 @@ final class Options
     public const DEFAULT_EXCLUDES = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
 
     /** 値が要るオプション */
-    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split'];
+    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners'];
 
     /** 値を取らないオプション */
     private const FLAGS = ['help', 'json', 'samples', 'weight-by-references'];
@@ -40,6 +40,8 @@ final class Options
         public readonly int $split,
         /** 順位づけを参照数の対数で重み付けする */
         public readonly bool $weightByReferences,
+        /** CODEOWNERS のファイル。null なら root / .github / docs / .gitlab を探す */
+        public readonly ?string $codeowners,
     ) {
     }
 
@@ -110,6 +112,7 @@ final class Options
             rules: $values['rules'] ?? null,
             split: self::integerOrZero('split', $values['split'] ?? '0'),
             weightByReferences: $flags['weight-by-references'] ?? false,
+            codeowners: $values['codeowners'] ?? null,
         );
     }
 

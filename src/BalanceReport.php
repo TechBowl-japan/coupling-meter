@@ -61,6 +61,7 @@ final class BalanceReport
         private readonly ?Rules $rules = null,
         private readonly ?Packages $packages = null,
         private readonly bool $weightByReferences = false,
+        private readonly ?CodeOwners $codeOwners = null,
     ) {
     }
 
@@ -92,8 +93,12 @@ final class BalanceReport
             $this->volatilityScore[$module] = Volatility::levelOf($scale);
         }
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
+        // 所有者は CODEOWNERS の宣言を優先し、なければ git の著者で代用する。
+        $declaredOwners = $this->codeOwners?->moduleOwners($fileToModule) ?? [];
+        if ($this->git !== null || $declaredOwners !== []) {
+            $this->ownership = new Ownership($this->git?->moduleAuthors($fileToModule) ?? [], $declaredOwners);
+        }
         if ($this->git !== null) {
-            $this->ownership = new Ownership($this->git->moduleAuthors($fileToModule));
             $this->changeKinds = $this->git->moduleChangeKinds($fileToModule);
         }
 
@@ -168,6 +173,7 @@ final class BalanceReport
             // 触っている人が分かれていれば、名前空間が近くても調整の労力は上がる。
             $ownershipOverlap = $this->ownership?->overlap($from, $to) ?? 1.0;
             $distantOwners = $this->ownership?->isDistant($from, $to) ?? false;
+            $ownersDeclared = $this->ownership !== null && $this->ownership->isDeclared($from) && $this->ownership->isDeclared($to);
 
             // キューやイベントでしかつながっていない組は、実行時の距離が遠い。
             $asyncOnly = array_keys($entry['kinds']) === ['async-dispatch'];
@@ -206,6 +212,7 @@ final class BalanceReport
                 inferredVolatilityFrom: $this->inferred->of($from),
                 volatilityInherited: $this->inferred->isInherited($from),
                 distantOwners: $distantOwners,
+                ownersDeclared: $ownersDeclared,
                 volatility: $volatility,
                 volatilityDeclared: isset($this->declaredVolatility[$to]),
                 quadrant: $quadrant,
@@ -392,9 +399,10 @@ final class BalanceReport
                     'type' => 'split-ownership',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '%s で %d 箇所つながっているが、触っている人がほとんど重なっていない',
+                        '%s で %d 箇所つながっているが、%s',
                         $strength->label(),
                         $pair->references,
+                        $pair->ownersDeclared ? 'CODEOWNERS の所有者が別のチームになっている' : '触っている人がほとんど重なっていない',
                     ),
                 ];
             }

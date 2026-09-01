@@ -84,7 +84,7 @@ final class OwnershipTest extends TestCase
             ['A' => ['@org/a']],
         );
 
-        // B は宣言がないので著者（hanako）。A の宣言（@org/a）とは重ならない
+        // B に宣言がないので、A も宣言ではなく著者で比べる。taro と hanako は重ならない
         $this->assertSame(0.0, $ownership->overlap('A', 'B'));
         $this->assertFalse($ownership->isDeclared('B'));
     }
