@@ -95,4 +95,50 @@ final class GitHistoryTest extends TestCase
             exec(\sprintf('rm -rf %s', escapeshellarg($empty)));
         }
     }
+
+    public function testCoChangeSubjectsCarryTheCommitMessages(): void
+    {
+        file_put_contents($this->repo . '/app/顧客/Customer.php', '<?php // 2');
+        file_put_contents($this->repo . '/app/Order.php', '<?php // 2');
+        $this->git('add -A');
+        $this->git('commit -q -m "fix: 注文の合計が顧客の割引を見ていない"');
+
+        $git = new GitHistory($this->repo, '1 year ago');
+        $this->assertTrue($git->load());
+
+        $subjects = $git->coChangeSubjects([
+            'app/顧客/Customer.php' => ['App\\Customer'],
+            'app/Order.php' => ['App\\Order'],
+        ]);
+
+        $key = array_key_first($subjects);
+        $this->assertNotNull($key);
+        // 新しい順。2 つのコミットとも両モジュールを触っている
+        $this->assertSame(
+            ['fix: 注文の合計が顧客の割引を見ていない', 'feat: 顧客と注文'],
+            $subjects[$key],
+        );
+    }
+
+    public function testCoChangeSubjectsAreCappedByTheLimit(): void
+    {
+        for ($i = 0; $i < 4; ++$i) {
+            file_put_contents($this->repo . '/app/顧客/Customer.php', '<?php // ' . $i);
+            file_put_contents($this->repo . '/app/Order.php', '<?php // ' . $i);
+            $this->git('add -A');
+            $this->git(\sprintf('commit -q -m "chore: %d 回目"', $i));
+        }
+
+        $git = new GitHistory($this->repo, '1 year ago');
+        $this->assertTrue($git->load());
+
+        $subjects = $git->coChangeSubjects([
+            'app/顧客/Customer.php' => ['App\\Customer'],
+            'app/Order.php' => ['App\\Order'],
+        ], 2);
+
+        $key = array_key_first($subjects);
+        $this->assertNotNull($key);
+        $this->assertCount(2, $subjects[$key]);
+    }
 }
