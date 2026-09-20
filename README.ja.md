@@ -300,6 +300,7 @@ git の著者から出るのは「実際に触った人」で、責任を持つ�
 - **実行時の依存の一部**。`app(Foo::class)` や `$this->app->make(Foo::class)` のようにクラス名が式として書かれていれば追える。
   文字列で組み立てたクラス名、Facade 越しの呼び出し、設定ファイル経由の解決は追えない
 - **依存の数**。原著は関係の数ではなく性質を見る立場を取る。実装もそれに従うため、参照 1 箇所の依存が上位に来る。読みにくければ `--weight-by-references`
+- **リネーム直後の変動性**。git 履歴はファイルのパスで追うので、ディレクトリやクラスを大きく動かした直後はそのモジュールの履歴が途切れ、変動性と同時変更が出なくなる。しばらく積むまでは順位を信用しない
 - テストコード（既定で除外する）
 
 ## 先行する指標との関係
@@ -313,6 +314,21 @@ git の著者から出るのは「実際に触った人」で、責任を持つ�
 
 著者自身も [vladikk/modularity](https://github.com/vladikk/modularity) で Claude Code スキルを公開している。
 あちらは判断の枠組みを AI に渡すもので、計測はしない。本ツールは同じ入力に同じ出力を返す代わりに、判断はしない。
+
+## 構成
+
+名前空間を役割ごとに切ってある。自分自身に当てられるようにするためでもある（フラットな名前空間ではモジュールが 1 つしかできず、組が 0 件になる）。
+
+| 名前空間 | 役割 |
+|---|---|
+| `Source\` | 静的解析でコードから読む（Analyzer、ReferenceCollector、TableUsageCollector ほか） |
+| `History\` | git から読む（GitHistory、Volatility、CoChange、Ownership ほか） |
+| `Balance\` | 原著のモデルと計算（BalanceEquation、Distance、ModuleMap、Pair、Ranking） |
+| `Report\` | 出力の組み立て（BalanceReport、Hints、Samples、Annotations、Baseline） |
+| `Config\` | 設定と宣言の読み取り（Options、Rules、Preset、Presets、CodeOwners、Packages） |
+| root | `Strength` のみ。全モジュールが使う語彙なので共有カーネルとして残す |
+
+依存は `Report -> 全体`、`Source / Balance -> Config` という一方向になっている。このリポジトリ自身も CI で計測しており、基準は `.coupling-baseline.json` にある。
 
 ## 開発
 

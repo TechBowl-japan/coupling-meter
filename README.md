@@ -290,6 +290,7 @@ Mixing declared and observed ownership would mark every pair between a declared 
 - **Part of runtime coupling in distance.** Asynchronous handoffs through `dispatch` / `event` / `broadcast` are seen, but observer and listener registration, and scheduler-driven invocation, are not
 - **Part of runtime dependencies.** Class names written as expressions, such as `app(Foo::class)` or `$this->app->make(Foo::class)`, are followed. Class names assembled from strings, calls through facades, and resolution driven by config files are not
 - **The number of dependencies.** The book looks at the nature of a relationship rather than its count, and so does the implementation — which means a dependency with a single reference can rank high. Use `--weight-by-references` when that makes the output hard to read
+- **Volatility right after a rename.** History is followed by file path, so moving directories or classes around cuts a module's history short, and volatility and co-change come out empty. Do not trust the ranking until some history has accumulated again
 - Test code (excluded by default)
 
 ## Relation to earlier metrics
@@ -302,6 +303,21 @@ Mixing declared and observed ownership would mark every pair between a declared 
 | Classifying the quality of coupling | Structured design coupling (1974), connascence | Turns the classification into a mechanical decision |
 
 The author also publishes a Claude Code skill, [vladikk/modularity](https://github.com/vladikk/modularity). That one hands the framework for judgement to an AI and does not measure. This tool returns the same output for the same input, and does not judge.
+
+## Project layout
+
+Namespaces are split by role — partly so the tool can be run on itself (a flat namespace produces one module and zero pairs).
+
+| Namespace | Role |
+|---|---|
+| `Source\` | Reading the code through static analysis (Analyzer, ReferenceCollector, TableUsageCollector, ...) |
+| `History\` | Reading git (GitHistory, Volatility, CoChange, Ownership, ...) |
+| `Balance\` | The model and the arithmetic from the book (BalanceEquation, Distance, ModuleMap, Pair, Ranking) |
+| `Report\` | Assembling output (BalanceReport, Hints, Samples, Annotations, Baseline) |
+| `Config\` | Reading configuration and declarations (Options, Rules, Preset, Presets, CodeOwners, Packages) |
+| root | `Strength` only. Shared vocabulary for every module, kept as a shared kernel |
+
+Dependencies run one way: `Report -> everything`, `Source / Balance -> Config`. This repository measures itself in CI; the baseline lives in `.coupling-baseline.json`.
 
 ## Development
 
