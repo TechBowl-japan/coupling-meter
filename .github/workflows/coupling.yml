@@ -28,6 +28,11 @@ jobs:
 
       # 基準から増えた組だけを見る。基準は .coupling-baseline.json で、
       # 直すか受け入れるかを決めたら --write-baseline で更新する。
+      #
+      # 均衡度は変動性を含み、変動性は git 履歴の分位なので、コミットが増えると
+      # 全モジュールの順位が動く。履歴が短いうちは基準が揺れやすい。
+      # 測り方を変えるオプション（--max-commit-files、--depth、--since、--preset）を
+      # 変えたときも、基準は作り直す必要がある。
       - name: Measure coupling balance
         run: >-
           bin/coupling-meter . --include=src --depth=3

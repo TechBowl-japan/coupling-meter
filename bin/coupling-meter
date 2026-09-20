@@ -64,6 +64,10 @@ if ($options->help || $options->path === null) {
           --preset    framework conventions (laravel / symfony / none, comma separated).
                       Guessed from composer.json when omitted. Define your own under
                       presets: in coupling-meter.yaml and call it by name
+          --max-commit-files
+                      drop commits that touched more than this many analyzed files
+                      (default 50, 0 to disable). Bulk reformatting and license updates
+                      create co-change between everything while sharing no knowledge
           --split     split namespaces with more classes than this one level deeper
                       (default 0 = never split)
           --weight-by-references
@@ -97,7 +101,7 @@ $includes = $options->includes;
 $analyzer = new Analyzer($root, $excludes, $includes, $preset);
 $analyzer->run();
 
-$git = new GitHistory($root, $since);
+$git = new GitHistory($root, $since, $options->maxCommitFiles);
 $hasGit = $git->load();
 
 try {
@@ -158,6 +162,7 @@ if ($options->json) {
     $payload = [
         'root' => $root,
         'preset' => $preset->name,
+        'skipped_commits' => $git->skipped(),
         'stats' => $stats,
         'pairs' => array_map(static function (Pair $pair): array {
             $array = $pair->toArray();
@@ -243,7 +248,7 @@ $dim = static fn (string $text): string => "\033[2m{$text}\033[0m";
 
 fwrite(STDOUT, "\n" . $bold('coupling-meter') . ' ' . $dim($root) . "\n");
 fwrite(STDOUT, sprintf(
-    "  classes %d / references %d / modules %d / pairs %d / commits %s / preset %s\n\n",
+    "  classes %d / references %d / modules %d / pairs %d / commits %s%s / preset %s\n\n",
     $stats['classes'],
     $stats['references'],
     $stats['modules'],
@@ -253,6 +258,7 @@ fwrite(STDOUT, sprintf(
         $git->isRepository() => '— (no commit touched PHP in this window; widen --since)',
         default => '— (no git history)',
     },
+    $git->skipped() === 0 ? '' : sprintf(' (%d bulk commits skipped)', $git->skipped()),
     $preset->name,
 ));
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Techtrain\CouplingMeter\Config;
 
+use Techtrain\CouplingMeter\History\GitHistory;
+
 /**
  * コマンドライン引数。
  *
@@ -15,7 +17,7 @@ final class Options
     public const DEFAULT_EXCLUDES = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
 
     /** 値が要るオプション */
-    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners', 'preset', 'format', 'fail-on', 'baseline'];
+    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners', 'preset', 'format', 'fail-on', 'baseline', 'max-commit-files'];
 
     /** 値を取らないオプション */
     private const FLAGS = ['help', 'json', 'samples', 'weight-by-references', 'write-baseline'];
@@ -56,6 +58,8 @@ final class Options
         public readonly ?string $baseline,
         /** baseline のファイルを今の計測で書き直して終わる */
         public readonly bool $writeBaseline,
+        /** この数を超える解析対象ファイルを触ったコミットは履歴から外す。0 で無効 */
+        public readonly int $maxCommitFiles,
     ) {
     }
 
@@ -147,6 +151,7 @@ final class Options
             failOn: isset($values['fail-on']) ? self::integer('fail-on', $values['fail-on']) : null,
             baseline: $values['baseline'] ?? null,
             writeBaseline: $flags['write-baseline'] ?? false,
+            maxCommitFiles: self::integerOrZero('max-commit-files', $values['max-commit-files'] ?? (string) GitHistory::DEFAULT_MAX_FILES),
         );
     }
 

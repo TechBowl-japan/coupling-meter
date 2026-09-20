@@ -16,10 +16,31 @@ final class GitHistory
     /** @var array<string, string> コミットハッシュ => 1 行目のメッセージ */
     private array $subjects = [];
 
+    /**
+     * 一括整形やライセンス更新のような、1 コミットで大量のファイルを触る変更の既定の上限。
+     *
+     * この種のコミットは 1 件で全モジュールの組に共起を作るが、知識は何も共有していない。
+     * 原著の結合は「変更が伝播する関係」なので、伝播していない変更は数えない。
+     */
+    public const DEFAULT_MAX_FILES = 50;
+
+    /** 大量のファイルを触ったせいで履歴から外したコミット数 */
+    private int $skipped = 0;
+
+    /**
+     * @param int $maxFiles この数を超える解析対象ファイルを触ったコミットは履歴から外す。0 で無効
+     */
     public function __construct(
         private readonly string $root,
         private readonly string $since = '12 months ago',
+        private readonly int $maxFiles = self::DEFAULT_MAX_FILES,
     ) {
+    }
+
+    /** 履歴から外したコミット数 */
+    public function skipped(): int
+    {
+        return $this->skipped;
     }
 
     private string $prefix = '';
@@ -71,6 +92,15 @@ final class GitHistory
                     $line = substr($line, \strlen($this->prefix));
                 }
                 $this->commits[$current][] = $line;
+            }
+        }
+
+        if ($this->maxFiles > 0) {
+            foreach ($this->commits as $hash => $files) {
+                if (\count($files) > $this->maxFiles) {
+                    unset($this->commits[$hash], $this->authors[$hash], $this->subjects[$hash]);
+                    ++$this->skipped;
+                }
             }
         }
 

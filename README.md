@@ -34,6 +34,14 @@ A pair is modular when strength and distance cancel each other out, and complex 
 
 `--json` also carries `co_change_subjects`: the messages of up to five commits that changed both modules. The rate alone cannot tell a structural necessity from two modules being swept into the same feature; the messages are there for whoever, or whatever, makes that call.
 
+### Bulk commits are dropped
+
+A single commit that reformats the whole tree or updates every license header creates co-change between every pair of modules while sharing no knowledge at all. Coupling in the book is a relationship through which *change propagates*, so a change that propagates nothing is not counted: commits touching more than `--max-commit-files` analyzed files (default 50) are removed from the history entirely, which keeps them out of volatility and ownership as well. Pass `--max-commit-files=0` to keep them.
+
+Measured on an open-source PHP project with ten years of history, 35 of 3,358 commits are dropped — the largest reformatting commit touched over 800 PHP files — and the average co-change rate halves from 0.048 to 0.023. 33 pairs that appeared to change together turn out to have no shared commit at all.
+
+Changing this value changes what is measured, so a baseline written under one value cannot be compared against another. Rewrite the baseline with `--write-baseline` after changing it.
+
 Three and above counts as high, two and below as low. Those feed the rules and produce the quadrant and the balance verdict.
 
 Ranking uses the balanced coupling equation from section 10.3, with all three dimensions placed on a 1 to 10 scale.
@@ -190,6 +198,7 @@ How to read it. `Shop\Checkout -> Shop\Catalog` is model coupling by type, and C
 | `--rules` | auto-detect | Allowed dependencies. Looks for `coupling-meter.yaml` / `deptrac.yaml` / `deptrac.config.yaml` at root when omitted |
 | `--codeowners` | auto-detect | Ownership declaration. Looks for `CODEOWNERS` at root, `.github/`, `docs/` and `.gitlab/` when omitted. Takes precedence over git authors |
 | `--split` | 0 | Namespaces with more classes than this are split into their child namespaces. Prevents VOL and co-change from pinning at the ceiling for pairs involving a huge module such as `App\Models`. Splits again if a child is still too large |
+| `--max-commit-files` | 50 | Drop commits that touched more than this many analyzed files. Bulk reformatting and license updates create co-change between everything while sharing no knowledge. `0` keeps them |
 | `--weight-by-references` | none | Weight the ranking by the logarithm of the reference count. Off by default, since the book looks at the nature of a relationship rather than its count. Useful when pairs with a single reference crowd the top |
 | `--format` | text | Output shape (`text` / `json` / `samples` / `github`). `--json` and `--samples` are aliases for the same thing |
 | `--fail-on` | none | Exit with code 1 if a pair at or below this balance is present |

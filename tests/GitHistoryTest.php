@@ -141,4 +141,44 @@ final class GitHistoryTest extends TestCase
         $this->assertNotNull($key);
         $this->assertCount(2, $subjects[$key]);
     }
+
+    public function testBulkCommitsAreDroppedFromHistory(): void
+    {
+        // 一括整形に相当するコミット。触ったファイルは多いが、知識は何も共有していない
+        for ($i = 0; $i < 6; ++$i) {
+            file_put_contents($this->repo . '/app/Bulk' . $i . '.php', '<?php');
+        }
+        $this->git('add -A');
+        $this->git('commit -q -m "chore: ライセンスヘッダを一括更新"');
+
+        $git = new GitHistory($this->repo, '1 year ago', 5);
+        $this->assertTrue($git->load());
+        $this->assertSame(1, $git->skipped());
+
+        $modules = $git->moduleCommits(['app/Bulk0.php' => ['App\\Bulk']]);
+        $this->assertSame([], $modules['App\\Bulk'] ?? []);
+    }
+
+    public function testBulkCommitsAreKeptWhenTheLimitIsZero(): void
+    {
+        for ($i = 0; $i < 6; ++$i) {
+            file_put_contents($this->repo . '/app/Bulk' . $i . '.php', '<?php');
+        }
+        $this->git('add -A');
+        $this->git('commit -q -m "chore: ライセンスヘッダを一括更新"');
+
+        $git = new GitHistory($this->repo, '1 year ago', 0);
+        $this->assertTrue($git->load());
+        $this->assertSame(0, $git->skipped());
+
+        $modules = $git->moduleCommits(['app/Bulk0.php' => ['App\\Bulk']]);
+        $this->assertCount(1, $modules['App\\Bulk'] ?? []);
+    }
+
+    public function testOrdinaryCommitsSurviveTheLimit(): void
+    {
+        $git = new GitHistory($this->repo, '1 year ago', 5);
+        $this->assertTrue($git->load());
+        $this->assertSame(0, $git->skipped());
+    }
 }
