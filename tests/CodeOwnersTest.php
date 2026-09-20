@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\CodeOwners;
+use Techtrain\CouplingMeter\Config\CodeOwners;
 
 /**
  * CODEOWNERS の照合規則（GitHub と GitLab の共通部分）。

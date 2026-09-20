@@ -1,0 +1,34 @@
+name: Coupling
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  balance:
+    name: Coupling Balance
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 変動性と同時変更に git 履歴が要る
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install dependencies (cached)
+        uses: ramsey/composer-install@v3
+        with:
+          composer-options: --no-interaction --prefer-dist --no-progress
+
+      # 基準から増えた組だけを見る。基準は .coupling-baseline.json で、
+      # 直すか受け入れるかを決めたら --write-baseline で更新する。
+      - name: Measure coupling balance
+        run: >-
+          bin/coupling-meter . --include=src --depth=3
+          --baseline=.coupling-baseline.json --fail-on=3 --format=github

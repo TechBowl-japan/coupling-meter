@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Source;
 
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\NodeVisitor\ParentConnectingVisitor;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
+use Techtrain\CouplingMeter\Config\Options;
+use Techtrain\CouplingMeter\Config\Preset;
 
 /** プロジェクトを 2 パスで読む。1 パス目で型の索引、2 パス目で参照の収集。 */
 final class Analyzer

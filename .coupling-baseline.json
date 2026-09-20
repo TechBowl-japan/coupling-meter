@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "pairs": {
+        "Techtrain\\CouplingMeter\\Balance -> Techtrain\\CouplingMeter": 7,
+        "Techtrain\\CouplingMeter\\Balance -> Techtrain\\CouplingMeter\\Config": 8,
+        "Techtrain\\CouplingMeter\\History -> Techtrain\\CouplingMeter": 2,
+        "Techtrain\\CouplingMeter\\Report -> Techtrain\\CouplingMeter": 2,
+        "Techtrain\\CouplingMeter\\Report -> Techtrain\\CouplingMeter\\Balance": 8,
+        "Techtrain\\CouplingMeter\\Report -> Techtrain\\CouplingMeter\\Config": 8,
+        "Techtrain\\CouplingMeter\\Report -> Techtrain\\CouplingMeter\\History": 8,
+        "Techtrain\\CouplingMeter\\Report -> Techtrain\\CouplingMeter\\Source": 8,
+        "Techtrain\\CouplingMeter\\Source -> Techtrain\\CouplingMeter": 2,
+        "Techtrain\\CouplingMeter\\Source -> Techtrain\\CouplingMeter\\Config": 8
+    }
+}

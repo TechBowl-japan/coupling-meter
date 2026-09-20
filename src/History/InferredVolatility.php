@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\History;
+
+use Techtrain\CouplingMeter\Strength;
 
 /**
  * 依存先から受け取る変動性を含めて、実際に変わりうる度合いを出す。

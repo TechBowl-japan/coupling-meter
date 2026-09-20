@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Rules;
+use Techtrain\CouplingMeter\Config\Rules;
 
 final class RulesTest extends TestCase
 {

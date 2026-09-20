@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Analyzer;
-use Techtrain\CouplingMeter\Presets;
-use Techtrain\CouplingMeter\Reference;
+use Techtrain\CouplingMeter\Config\Presets;
+use Techtrain\CouplingMeter\Source\Analyzer;
+use Techtrain\CouplingMeter\Source\Reference;
 use Techtrain\CouplingMeter\Strength;
 
 final class SharedTablesTest extends TestCase

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Config;
 
 /**
  * コマンドライン引数。
@@ -72,7 +72,7 @@ final class Options
         foreach ($arguments as $argument) {
             if (!str_starts_with($argument, '--')) {
                 if ($path !== null) {
-                    throw new \InvalidArgumentException("解析対象のパスは 1 つだけ指定できます: {$argument}");
+                    throw new \InvalidArgumentException("Only one path can be analyzed at a time: {$argument}");
                 }
                 $path = $argument;
 
@@ -85,7 +85,7 @@ final class Options
 
             if (\in_array($name, self::FLAGS, true)) {
                 if ($hasValue) {
-                    throw new \InvalidArgumentException("--{$name} は値を取りません");
+                    throw new \InvalidArgumentException("--{$name} takes no value");
                 }
                 $flags[$name] = true;
 
@@ -94,18 +94,18 @@ final class Options
 
             if (\in_array($name, self::VALUED, true)) {
                 if (!$hasValue) {
-                    throw new \InvalidArgumentException("--{$name} には値が必要です（例: --{$name}=...）");
+                    throw new \InvalidArgumentException("--{$name} needs a value (for example --{$name}=...)");
                 }
                 $values[$name] = (string) $value;
 
                 continue;
             }
 
-            throw new \InvalidArgumentException("不明なオプションです: --{$name}");
+            throw new \InvalidArgumentException("Unknown option: --{$name}");
         }
 
         if (isset($flags['json'], $flags['samples'])) {
-            throw new \InvalidArgumentException('--json と --samples は同時に指定できません');
+            throw new \InvalidArgumentException('--json and --samples cannot be combined');
         }
 
         $format = $values['format'] ?? match (true) {
@@ -114,13 +114,13 @@ final class Options
             default => 'text',
         };
         if (!\in_array($format, self::FORMATS, true)) {
-            throw new \InvalidArgumentException('--format には ' . implode(' / ', self::FORMATS) . ' を指定してください: ' . $format);
+            throw new \InvalidArgumentException('--format must be one of ' . implode(' / ', self::FORMATS) . ': ' . $format);
         }
         if (isset($values['format']) && (isset($flags['json']) || isset($flags['samples']))) {
-            throw new \InvalidArgumentException('--format と --json / --samples は同時に指定できません');
+            throw new \InvalidArgumentException('--format cannot be combined with --json or --samples');
         }
         if (isset($flags['write-baseline']) && !isset($values['baseline'])) {
-            throw new \InvalidArgumentException('--write-baseline には --baseline=<file> が必要です');
+            throw new \InvalidArgumentException('--write-baseline needs --baseline=<file>');
         }
 
         $excludes = self::DEFAULT_EXCLUDES;
@@ -153,7 +153,7 @@ final class Options
     private static function integerOrZero(string $name, string $value): int
     {
         if (!ctype_digit($value)) {
-            throw new \InvalidArgumentException("--{$name} には 0 以上の整数を指定してください: {$value}");
+            throw new \InvalidArgumentException("--{$name} needs an integer of 0 or more: {$value}");
         }
 
         return (int) $value;
@@ -162,7 +162,7 @@ final class Options
     private static function integer(string $name, string $value): int
     {
         if (!ctype_digit($value) || (int) $value < 1) {
-            throw new \InvalidArgumentException("--{$name} には 1 以上の整数を指定してください: {$value}");
+            throw new \InvalidArgumentException("--{$name} needs an integer of 1 or more: {$value}");
         }
 
         return (int) $value;

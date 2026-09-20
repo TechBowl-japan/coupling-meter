@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Source;
+
+use Techtrain\CouplingMeter\Strength;
 
 /**
  * 同じテーブルを触るクラスの組を、shared-table の参照に変える。

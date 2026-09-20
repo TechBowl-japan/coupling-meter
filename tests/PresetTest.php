@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Analyzer;
-use Techtrain\CouplingMeter\Preset;
-use Techtrain\CouplingMeter\Presets;
-use Techtrain\CouplingMeter\Reference;
+use Techtrain\CouplingMeter\Config\Preset;
+use Techtrain\CouplingMeter\Config\Presets;
+use Techtrain\CouplingMeter\Source\Analyzer;
+use Techtrain\CouplingMeter\Source\Reference;
 use Techtrain\CouplingMeter\Strength;
 
 final class PresetTest extends TestCase
@@ -120,7 +120,7 @@ final class PresetTest extends TestCase
     public function testUnknownPresetIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/知らない preset/');
+        $this->expectExceptionMessageMatches('/Unknown preset/');
 
         Presets::resolve(['cakephp']);
     }
@@ -147,7 +147,7 @@ final class PresetTest extends TestCase
     public function testCustomPresetWithAnUnknownKeyIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/不明なキー/');
+        $this->expectExceptionMessageMatches('/unknown key/');
 
         Preset::fromArray('house', ['async_method' => ['publish']]);
     }

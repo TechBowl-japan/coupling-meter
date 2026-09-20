@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Ownership;
+use Techtrain\CouplingMeter\History\Ownership;
 
 final class OwnershipTest extends TestCase
 {

@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Source;
 
 use PhpParser\Node;
 use PhpParser\NodeVisitorAbstract;
+use Techtrain\CouplingMeter\Config\Preset;
+use Techtrain\CouplingMeter\Strength;
 
 /**
  * 1 ファイル分の AST を走査し、クラス間の参照を強度つきで集める。

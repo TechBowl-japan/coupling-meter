@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Config;
 
 use Symfony\Component\Yaml\Yaml;
 
@@ -65,7 +65,7 @@ final class Presets
             if ($found === null) {
                 $known = implode(', ', [...self::BUILTIN, ...array_keys($custom), 'none']);
 
-                throw new \InvalidArgumentException("知らない preset です: {$name}（使えるもの: {$known}）");
+                throw new \InvalidArgumentException("Unknown preset: {$name} (available: {$known})");
             }
             $preset = $preset->with($found);
         }
@@ -134,17 +134,17 @@ final class Presets
             return [];
         }
         if (!\is_array($parsed['presets'])) {
-            throw new \InvalidArgumentException('presets: には preset の名前と定義を書いてください');
+            throw new \InvalidArgumentException('presets: must map a preset name to its definition');
         }
 
         $custom = [];
         foreach ($parsed['presets'] as $name => $definition) {
             $name = strtolower((string) $name);
             if (\in_array($name, self::BUILTIN, true)) {
-                throw new \InvalidArgumentException("組み込みと同じ名前の preset は定義できません: {$name}");
+                throw new \InvalidArgumentException("A preset cannot reuse a built-in name: {$name}");
             }
             if (!\is_array($definition)) {
-                throw new \InvalidArgumentException("preset {$name} の定義が空です");
+                throw new \InvalidArgumentException("Preset {$name} has an empty definition");
             }
             /** @var array<string, mixed> $definition */
             $custom[$name] = Preset::fromArray($name, $definition);

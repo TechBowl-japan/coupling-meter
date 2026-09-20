@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Config;
 
 use Symfony\Component\Yaml\Yaml;
 
@@ -56,7 +56,7 @@ final class Rules
         foreach ($candidates as $file) {
             if (!is_file($file)) {
                 if ($explicit !== null) {
-                    throw new \InvalidArgumentException("ルールファイルが見つかりません: {$file}");
+                    throw new \InvalidArgumentException("Rules file not found: {$file}");
                 }
 
                 continue;
@@ -81,11 +81,11 @@ final class Rules
         $rules = new self();
         $allow = $config['allow'] ?? [];
         if (!\is_array($allow)) {
-            throw new \InvalidArgumentException('allow はリストで書いてください');
+            throw new \InvalidArgumentException('allow must be a list');
         }
         foreach ($allow as $entry) {
             if (!\is_string($entry) || !str_contains($entry, '->')) {
-                throw new \InvalidArgumentException('allow の各行は "From -> To" の形で書いてください');
+                throw new \InvalidArgumentException('Each allow entry must be written as "From -> To"');
             }
             [$from, $to] = array_map('trim', explode('->', $entry, 2));
             $rules->allowed[] = ['from' => self::glob($from), 'to' => self::glob($to)];
@@ -93,11 +93,11 @@ final class Rules
 
         $volatility = $config['volatility'] ?? [];
         if (!\is_array($volatility)) {
-            throw new \InvalidArgumentException('volatility は「モジュール: 1 から 10」の対応で書いてください');
+            throw new \InvalidArgumentException('volatility must map a module to a value from 1 to 10');
         }
         foreach ($volatility as $module => $value) {
             if (!\is_string($module) || !\is_int($value) || $value < 1 || $value > 10) {
-                throw new \InvalidArgumentException("volatility は 1 から 10 の整数で書いてください: {$module}");
+                throw new \InvalidArgumentException("volatility must be an integer from 1 to 10: {$module}");
             }
             $rules->volatility[$module] = $value;
         }

@@ -112,6 +112,10 @@ The available keys are `container_functions`, `container_methods`, `async_static
 
 A preset should only hold what the framework has officially decided, in a finite set that does not change. Per-project naming conventions grow without limit, and putting them here makes presets unmaintainable.
 
+## Output language
+
+The CLI output and the `--samples` hints are written in English. There is no option to switch languages.
+
 ## Install
 
 ```bash
@@ -152,8 +156,6 @@ Findings
   [intrusive and moving] Legacy\Reports -> Shop\Orders
       31 places reach inside, and 25% of commits change both
 ```
-
-(The CLI prints in Japanese; the output above is translated for this document.)
 
 How to read it. `Shop\Checkout -> Shop\Catalog` is model coupling by type, and Catalog is a shared kernel many modules use, so the distance is short (3) too. Both strength and distance are low, which is the low-cohesion quadrant — and because Catalog changes often (10) and 48% of commits change both, the balance lands at the worst value, 1. `Legacy\Reports -> Shop\Orders` reaches into Orders through inheritance and traits (10), and the two are far apart in namespace and ownership (7). Its balance of 4 is better than the two above, but being intrusive with 25% co-change makes it the most worthwhile finding to act on.
 
@@ -209,7 +211,7 @@ Any existing codebase starts with plenty of unbalanced pairs, so failing on all 
 `--format=github` emits GitHub Actions annotations. Representative examples carry a file and a line, so they land directly on the pull request diff (GitHub displays up to 10 annotations per job).
 
 ```
-::warning title=Coupling balance%3A new pair (balance 1),file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog is strength model(3) / distance 3 / volatility 10. Replace the concrete type with an interface or a DTO
+::warning title=Coupling balance%3A new pair (balance 1),file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog is strength model(3) / distance 3 / volatility 10. Replace a concrete type with an interface or a DTO
 ```
 
 ### Exit codes
@@ -290,6 +292,7 @@ Mixing declared and observed ownership would mark every pair between a declared 
 - **Part of runtime coupling in distance.** Asynchronous handoffs through `dispatch` / `event` / `broadcast` are seen, but observer and listener registration, and scheduler-driven invocation, are not
 - **Part of runtime dependencies.** Class names written as expressions, such as `app(Foo::class)` or `$this->app->make(Foo::class)`, are followed. Class names assembled from strings, calls through facades, and resolution driven by config files are not
 - **The number of dependencies.** The book looks at the nature of a relationship rather than its count, and so does the implementation — which means a dependency with a single reference can rank high. Use `--weight-by-references` when that makes the output hard to read
+- **Volatility right after a rename.** History is followed by file path, so moving directories or classes around cuts a module's history short, and volatility and co-change come out empty. Do not trust the ranking until some history has accumulated again
 - Test code (excluded by default)
 
 ## Relation to earlier metrics
@@ -302,6 +305,21 @@ Mixing declared and observed ownership would mark every pair between a declared 
 | Classifying the quality of coupling | Structured design coupling (1974), connascence | Turns the classification into a mechanical decision |
 
 The author also publishes a Claude Code skill, [vladikk/modularity](https://github.com/vladikk/modularity). That one hands the framework for judgement to an AI and does not measure. This tool returns the same output for the same input, and does not judge.
+
+## Project layout
+
+Namespaces are split by role — partly so the tool can be run on itself (a flat namespace produces one module and zero pairs).
+
+| Namespace | Role |
+|---|---|
+| `Source\` | Reading the code through static analysis (Analyzer, ReferenceCollector, TableUsageCollector, ...) |
+| `History\` | Reading git (GitHistory, Volatility, CoChange, Ownership, ...) |
+| `Balance\` | The model and the arithmetic from the book (BalanceEquation, Distance, ModuleMap, Pair, Ranking) |
+| `Report\` | Assembling output (BalanceReport, Hints, Samples, Annotations, Baseline) |
+| `Config\` | Reading configuration and declarations (Options, Rules, Preset, Presets, CodeOwners, Packages) |
+| root | `Strength` only. Shared vocabulary for every module, kept as a shared kernel |
+
+Dependencies run one way: `Report -> everything`, `Source / Balance -> Config`. This repository measures itself in CI; the baseline lives in `.coupling-baseline.json`.
 
 ## Development
 

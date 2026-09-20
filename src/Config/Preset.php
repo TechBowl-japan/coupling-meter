@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Config;
 
 /**
  * フレームワークの規約。
@@ -63,7 +63,7 @@ final class Preset
         ];
         foreach (array_keys($data) as $key) {
             if (!\in_array($key, $known, true)) {
-                throw new \InvalidArgumentException("preset {$name} に不明なキーがあります: {$key}");
+                throw new \InvalidArgumentException("Preset {$name} has an unknown key: {$key}");
             }
         }
 
@@ -114,13 +114,13 @@ final class Preset
     {
         $value = $data[$key] ?? [];
         if (!\is_array($value)) {
-            throw new \InvalidArgumentException("preset {$preset} の {$key} には名前の並びを書いてください");
+            throw new \InvalidArgumentException("{$key} in preset {$preset} must be a list of names");
         }
 
         $names = [];
         foreach ($value as $name) {
             if (!\is_string($name) || trim($name) === '') {
-                throw new \InvalidArgumentException("preset {$preset} の {$key} に文字列でない値があります");
+                throw new \InvalidArgumentException("{$key} in preset {$preset} contains a non-string value");
             }
             $names[] = $lower ? strtolower(trim($name)) : trim($name);
         }
