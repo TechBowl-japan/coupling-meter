@@ -32,11 +32,15 @@ A pair is modular when strength and distance cancel each other out, and complex 
 | Kind of change | git log | Conventional Commits prefixes split changes into evolution (feat, perf), correction (fix) and maintenance (refactor and others) |
 | co-change | git log | How often the two modules change in the same commit. The Jaccard index of their commit sets (intersection / union), so that a pair involving a huge module that changes with everything does not pin at 100% |
 
+`--json` also carries `co_change_subjects`: the messages of up to five commits that changed both modules. The rate alone cannot tell a structural necessity from two modules being swept into the same feature; the messages are there for whoever, or whatever, makes that call.
+
 ### Bulk commits are dropped
 
 A single commit that reformats the whole tree or updates every license header creates co-change between every pair of modules while sharing no knowledge at all. Coupling in the book is a relationship through which *change propagates*, so a change that propagates nothing is not counted: commits touching more than `--max-commit-files` analyzed files (default 50) are removed from the history entirely, which keeps them out of volatility and ownership as well. Pass `--max-commit-files=0` to keep them.
 
-On EC-CUBE 4, 35 of 3,358 commits are dropped — a single "copyright update" touched 833 PHP files — and the average co-change rate halves from 0.048 to 0.023. 33 pairs that appeared to change together turn out to have no shared commit at all.
+Measured on an open-source PHP project with ten years of history, 35 of 3,358 commits are dropped — the largest reformatting commit touched over 800 PHP files — and the average co-change rate halves from 0.048 to 0.023. 33 pairs that appeared to change together turn out to have no shared commit at all.
+
+Changing this value changes what is measured, so a baseline written under one value cannot be compared against another. Rewrite the baseline with `--write-baseline` after changing it.
 
 Three and above counts as high, two and below as low. Those feed the rules and produce the quadrant and the balance verdict.
 

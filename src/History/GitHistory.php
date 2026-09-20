@@ -170,6 +170,40 @@ final class GitHistory
     }
 
     /**
+     * 共起したコミットの subject を、組ごとに新しい順で返す。
+     *
+     * 同時に変わったという事実だけでは、構造から来る必然なのか、同じ機能追加に
+     * 巻き込まれただけなのかが分からない。判断する側に中身を渡すために持つ。
+     *
+     * @param array<string, list<string>> $fileToModules
+     * @param int $limit 組ごとに返す件数
+     * @return array<string, list<string>> "A|B" => subject
+     */
+    public function coChangeSubjects(array $fileToModules, int $limit = 5): array
+    {
+        $pairs = [];
+        foreach ($this->commits as $hash => $files) {
+            $subject = trim($this->subjects[$hash] ?? '');
+            if ($subject === '') {
+                continue;
+            }
+            $modules = $this->modulesOf($files, $fileToModules);
+            $count = \count($modules);
+            for ($i = 0; $i < $count; ++$i) {
+                for ($j = $i + 1; $j < $count; ++$j) {
+                    $key = $modules[$i] . '|' . $modules[$j];
+                    if (\count($pairs[$key] ?? []) >= $limit) {
+                        continue;
+                    }
+                    $pairs[$key][] = $subject;
+                }
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
      * モジュールごとに、誰が何回そこを変更したかを数える。
      *
      * @param array<string, list<string>> $fileToModules

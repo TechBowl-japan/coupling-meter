@@ -17,6 +17,7 @@ final class Pair
     /**
      * @param array<string, int> $kinds 参照の種類 => 件数
      * @param list<array{file: string, line: int, kind: string, strength: string, from: string, to: string, why: string, next: string}> $samples 代表例
+     * @param list<string> $coChangeSubjects 共起したコミットの subject
      */
     public function __construct(
         public readonly string $from,
@@ -46,6 +47,8 @@ final class Pair
         public readonly bool $balanced,
         public readonly int $coChanges,
         public readonly float $coChangeRate,
+        /** @var list<string> 共起したコミットの subject（新しい順、最大 5 件） */
+        public readonly array $coChangeSubjects,
         /** 以下は原著 10.3 の 1 から 10 の目盛り */
         public readonly int $strengthValue,
         public readonly int $distanceValue,
@@ -88,6 +91,7 @@ final class Pair
             'balanced' => $this->balanced,
             'co_changes' => $this->coChanges,
             'co_change_rate' => $this->coChangeRate,
+            'co_change_subjects' => $this->coChangeSubjects,
             'strength_value' => $this->strengthValue,
             'distance_value' => $this->distanceValue,
             'volatility_value' => $this->volatilityValue,

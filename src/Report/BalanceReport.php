@@ -109,6 +109,7 @@ final class BalanceReport
             $this->volatilityScore[$module] = Volatility::levelOf($scale);
         }
         $coChanges = $this->git?->coChanges($fileToModule) ?? [];
+        $coChangeSubjects = $this->git?->coChangeSubjects($fileToModule) ?? [];
         // 所有者は CODEOWNERS の宣言を優先し、なければ git の著者で代用する。
         $declaredOwners = $this->codeOwners?->moduleOwners($fileToModule) ?? [];
         if ($this->git !== null || $declaredOwners !== []) {
@@ -182,6 +183,7 @@ final class BalanceReport
             $strength = $entry['strength'];
             $volatility = $this->volatilityScore[$to] ?? 1;
             $coCommits = $coChanges[$this->coKey($from, $to)] ?? 0;
+            $coSubjects = $coChangeSubjects[$this->coKey($from, $to)] ?? [];
 
             // ほとんどのモジュールが依存する相手は共有カーネルとみなし、名前空間の距離を割り引く。
             $shared = $moduleCount > 0 && \count($dependants[$to] ?? []) >= $moduleCount * 0.4;
@@ -241,6 +243,7 @@ final class BalanceReport
                     $this->moduleCommitCount[$from] ?? 0,
                     $this->moduleCommitCount[$to] ?? 0,
                 ),
+                coChangeSubjects: $coSubjects,
                 strengthValue: $strengthValue,
                 distanceValue: $distanceValue,
                 volatilityValue: $volatilityValue,
