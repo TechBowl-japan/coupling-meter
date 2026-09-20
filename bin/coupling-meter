@@ -4,7 +4,9 @@
 declare(strict_types=1);
 
 use Techtrain\CouplingMeter\Analyzer;
+use Techtrain\CouplingMeter\Annotations;
 use Techtrain\CouplingMeter\BalanceReport;
+use Techtrain\CouplingMeter\Baseline;
 use Techtrain\CouplingMeter\CodeOwners;
 use Techtrain\CouplingMeter\GitHistory;
 use Techtrain\CouplingMeter\ModuleMap;
@@ -42,8 +44,14 @@ if ($options->help || $options->path === null) {
           --top       表示する組の数（既定 15）
           --include   解析対象を root 直下のディレクトリに限定する（カンマ区切り）
           --exclude   除外ディレクトリをカンマ区切りで追加
-          --json      機械可読な JSON で出力する
-          --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用）
+          --json      機械可読な JSON で出力する（--format=json と同じ）
+          --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用。--format=samples と同じ）
+          --format    出力の形（text / json / samples / github）。github は GitHub Actions の
+                      注釈として出す
+          --fail-on   均衡度がこの値以下の組があれば終了コード 1 を返す（CI 用）
+          --baseline  既知の組を記録したファイル。あれば、そこから増えた組と悪くなった組だけを見る
+          --write-baseline
+                      今の計測で --baseline のファイルを書き直して終わる
           --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
                       省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
           --codeowners
@@ -156,6 +164,73 @@ if ($options->json) {
     ];
     fwrite(STDOUT, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
     exit(0);
+}
+
+// CI 向け。基準からの増分だけを見て、終了コードで知らせる。
+if ($options->writeBaseline) {
+    if (file_put_contents((string) $options->baseline, Baseline::render($pairs)) === false) {
+        fwrite(STDERR, "基準ファイルを書けません: {$options->baseline}\n");
+        exit(1);
+    }
+    fwrite(STDOUT, sprintf("%s に %d 組を記録しました\n", $options->baseline, count($pairs)));
+    exit(0);
+}
+
+$ci = $options->format === 'github' || $options->failOn !== null;
+if ($ci) {
+    try {
+        $baseline = $options->baseline !== null ? Baseline::load($options->baseline) : Baseline::empty();
+    } catch (\InvalidArgumentException $e) {
+        fwrite(STDERR, $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    // 基準が無いときは全組が「新しく出た組」になる。--fail-on で足切りする前提。
+    $regressions = $baseline->regressions($pairs);
+    if ($options->failOn !== null) {
+        $regressions = array_values(array_filter(
+            $regressions,
+            static fn (array $entry): bool => $entry['pair']->balance <= $options->failOn,
+        ));
+    }
+
+    if ($options->format === 'github') {
+        // 注釈は 1 ジョブ 10 件までしか表示されない。残りはまとめの行で数だけ伝える。
+        foreach (array_slice($regressions, 0, 10) as $entry) {
+            fwrite(STDOUT, Annotations::forRegression($entry, $root) . "\n");
+        }
+    } else {
+        foreach ($regressions as $entry) {
+            $pair = $entry['pair'];
+            fwrite(STDOUT, sprintf(
+                "  %s  均衡度 %d%s  %s -> %s\n",
+                $entry['was'] === null ? '新規' : '悪化',
+                $pair->balance,
+                $entry['was'] === null ? '' : sprintf('（%d から）', $entry['was']),
+                $pair->from,
+                $pair->to,
+            ));
+        }
+    }
+
+    // モジュールが 1 つしかないと組は 0 件になる。測れていないことを緑で通さない。
+    if ($pairs === []) {
+        fwrite(STDERR, sprintf(
+            "測定対象がありません（モジュール %d / 組 0）。名前空間が 1 つだけのプロジェクトでは組ができません。--depth を見直してください。\n",
+            $stats['modules'],
+        ));
+        exit(2);
+    }
+
+    fwrite(STDOUT, sprintf(
+        "%s組 %d / 基準から増えた組 %d%s\n",
+        $options->format === 'github' ? '' : "\n",
+        count($pairs),
+        count($regressions),
+        $options->failOn === null ? '' : sprintf('（均衡度 %d 以下）', $options->failOn),
+    ));
+
+    exit($options->failOn !== null && $regressions !== [] ? 1 : 0);
 }
 
 $bold = static fn (string $text): string => "\033[1m{$text}\033[0m";

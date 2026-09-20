@@ -1,11 +1,12 @@
 # coupling-meter
 
-PHP プロジェクトの結合バランスを計測する。
+**English** | [日本語](README.ja.md)
 
-依存の有無ではなく、**その結合が釣り合っているか**を出す。Vlad Khononov『Balancing Coupling in Software Design』の
-統合強度（strength）、距離（distance）、変動性（volatility）を、静的解析と git 履歴から測る。
+Measure the coupling balance of a PHP project.
 
-## 原著の規則
+Instead of reporting whether a dependency exists, it reports **whether that coupling is balanced**. It measures integration strength, distance and volatility — the three dimensions from Vlad Khononov's *Balancing Coupling in Software Design* — from static analysis and git history.
+
+## The rules from the book
 
 ```
 MODULARITY = STRENGTH XOR DISTANCE
@@ -13,213 +14,264 @@ COMPLEXITY = STRENGTH AND DISTANCE
 BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 ```
 
-強度と距離が打ち消し合っていればモジュラー、そろっていれば複雑になる。両方が低い組も低凝集として複雑の側に入る。
-変動性が低ければ、崩れていても実害は出ない。
+A pair is modular when strength and distance cancel each other out, and complex when they line up. A pair where both are low counts as low cohesion, which is on the complex side too. When volatility is low, an unbalanced pair does no real harm.
 
-| | 距離が低い | 距離が高い |
+| | Low distance | High distance |
 |---|---|---|
-| **強度が低い** | 低凝集（複雑） | 疎結合（モジュラー） |
-| **強度が高い** | 高凝集（モジュラー） | 密結合（複雑） |
+| **Low strength** | Low cohesion (complex) | Loose coupling (modular) |
+| **High strength** | High cohesion (modular) | Tight coupling (complex) |
 
-## 何を測るか
+## What it measures
 
-| 軸 | 出どころ | 中身 |
+| Dimension | Source | What it is |
 |---|---|---|
-| strength | AST | contract、model、functional、intrusive の 4 段階。相手のどこまで知っているか |
-| distance | 名前空間、composer、CODEOWNERS、git、呼び出し方 | 2 つのモジュールの最も近い共通の祖先から出す。同じ composer パッケージの中では上限を設け、別パッケージなら 2 段遠くする。多くのモジュールが依存する相手は共有カーネルとみなして 1 段割り引き、担当が分かれている組（CODEOWNERS の所有者、なければ git の著者で見る）は 1 段遠くする。キューやイベントなど非同期の呼び出しだけでつながっている組は 1 段遠くする |
-| volatility | git log | そのモジュールが実際に変更されたコミット数の分位。回数は変更の種類で重み付けする（feat / perf = 1、fix = 0.5、refactor などの整備 = 0.25、分類できないものは 1）。期間内に変わらなかったモジュールも 0 回として分布に含め、その変動性は 1。同じ回数のモジュールは平均順位を取り、全員が同じなら中位に置く。`coupling-meter.yaml` の `volatility` で原著の目盛り（1 から 10）を宣言すれば、そちらを優先する |
-| 推定変動性 | 上記の組み合わせ | 依存先の変動性を強度に応じて受け取った値。原著 9.5 の推定変動性 |
-| 変更の中身 | git log | Conventional Commits の prefix から、機能を足す変更（feat、perf）、修正（fix）、整備（refactor ほか）に分ける |
-| co-change | git log | 2 つのモジュールが同じコミットで変わった割合。コミット集合の Jaccard 係数（共起 / 和集合）。何とでも一緒に変わる巨大モジュールとの組が 100% に張り付かないようにしている |
+| strength | AST | Four levels: contract, model, functional, intrusive. How much of the other side you know |
+| distance | Namespaces, composer, CODEOWNERS, git, call style | Derived from the nearest common ancestor of the two modules. Capped within a single composer package, and pushed two steps further apart across packages. A module many others depend on is treated as a shared kernel and discounted one step; a pair with different owners (CODEOWNERS if declared, otherwise git authors) is pushed one step apart, as is a pair connected only through asynchronous calls such as queues and events |
+| volatility | git log | The quantile of the commit count that actually touched the module. Counts are weighted by the kind of change (feat / perf = 1, fix = 0.5, refactor and other upkeep = 0.25, unclassified = 1). Modules untouched in the window are included in the distribution as zero and get a volatility of 1. Ties take the average rank, and if everything ties they land in the middle. A `volatility` entry in `coupling-meter.yaml` declares the book's scale (1 to 10) and takes precedence |
+| Inferred volatility | The above, combined | Volatility received from a dependency according to strength. Inferred volatility, section 9.5 of the book |
+| Kind of change | git log | Conventional Commits prefixes split changes into evolution (feat, perf), correction (fix) and maintenance (refactor and others) |
+| co-change | git log | How often the two modules change in the same commit. The Jaccard index of their commit sets (intersection / union), so that a pair involving a huge module that changes with everything does not pin at 100% |
 
-3 以上を高、2 以下を低として規則に入れ、象限とバランスの成否を出す。
+Three and above counts as high, two and below as low. Those feed the rules and produce the quadrant and the balance verdict.
 
-順位づけには原著 10.3 の均衡結合方程式を使う。3 つの次元を 1 から 10 の目盛りに載せて計算する。
+Ranking uses the balanced coupling equation from section 10.3, with all three dimensions placed on a 1 to 10 scale.
 
 ```
-モジュール性 = |strength - distance| + 1
-均衡度       = max(|strength - distance|, 10 - volatility) + 1
+modularity = |strength - distance| + 1
+balance    = max(|strength - distance|, 10 - volatility) + 1
 ```
 
-均衡度が低いほど複雑性に傾いている。目盛りは原著の割り当てに従う。
+The lower the balance, the further the pair leans toward complexity. The scale follows the book's assignment.
 
-| 次元 | 目盛り |
+| Dimension | Scale |
 |---|---|
-| strength | contract=1、model=3、functional=8、intrusive=10 |
-| distance | 同じ名前空間=2、離れるほど 3 から 7（ライブラリ以上は対象外） |
-| volatility | git の分位を 1、3、6、10 に写す |
+| strength | contract=1, model=3, functional=8, intrusive=10 |
+| distance | Same namespace=2, 3 to 7 as it gets further (library and beyond is out of scope) |
+| volatility | git quantiles mapped onto 1, 3, 6, 10 |
 
-著者は「これは正確な科学ではない」と断っている。数値範囲は目的に応じて調整してよい。
+The author notes that this is not an exact science. Adjust the ranges to fit your purpose.
 
-## 強度の判定
+## How strength is decided
 
-| 強度 | AST 上のしるし |
+| Strength | Signal in the AST |
 |---|---|
-| intrusive | 具象クラスの継承、trait の use、静的プロパティの参照、同じテーブルを触る（下記） |
-| functional | new、静的メソッド呼び出し、型が判っている変数へのメソッド呼び出し、コンテナ経由の解決、`Job::dispatch()` / `dispatch(new Job)` / `event(new Event)`（非同期。距離に効く） |
-| model | 引数と戻り値の型、プロパティの型、instanceof、catch、クラス定数、属性、文字列で書かれたクラス名 |
-| contract | interface と抽象クラスへの依存 |
+| intrusive | Extending a concrete class, using a trait, reading a static property, touching the same table (below) |
+| functional | `new`, static method calls, method calls on a variable of a known type, container resolution, `Job::dispatch()` / `dispatch(new Job)` / `event(new Event)` (asynchronous; affects distance) |
+| model | Parameter and return types, property types, `instanceof`, `catch`, class constants, attributes, class names written as strings |
+| contract | Dependencies on interfaces and abstract classes |
 
-相手が interface または抽象クラスなら、new とメソッド呼び出しをどちらも contract に落とす。
+When the target is an interface or an abstract class, both `new` and method calls drop to contract.
 
-### 型に出ない結合: 同じテーブル
+### Coupling that types don't show: the same table
 
-クラス参照に現れない結合のうち、同じテーブルを触っているものは `shared-table` として拾う。テーブルのスキーマという内部表現を共有しているので intrusive に置く。
+Coupling that never appears as a class reference, but touches the same table, is collected as `shared-table`. Since the table schema is an internal representation being shared, it is placed at intrusive.
 
-| 出どころ | 判定 | preset |
+| Source | How it is found | preset |
 |---|---|---|
-| Eloquent モデル | `Model` を継承するクラス。`protected $table` があればその値、なければクラス名を snake_case の複数形にしたもの | laravel |
-| Doctrine エンティティ | `#[ORM\Table(name: 'x')]` の属性、または docblock の `@ORM\Table(name="x")` | symfony |
-| 生 SQL | 文字列リテラル中の `FROM` / `JOIN` / `INTO` / `UPDATE` / `DELETE FROM` に続く識別子 | 共通 |
-| クエリビルダ | `DB::table('x')`、`->table('x')`、`->from('x')` の文字列引数 | laravel / symfony |
+| Eloquent model | A class extending `Model`. Uses `protected $table` when present, otherwise the class name in snake_case, pluralized | laravel |
+| Doctrine entity | The `#[ORM\Table(name: 'x')]` attribute, or `@ORM\Table(name="x")` in the docblock | symfony |
+| Raw SQL | Identifiers following `FROM` / `JOIN` / `INTO` / `UPDATE` / `DELETE FROM` inside string literals | common |
+| Query builder | The string argument of `DB::table('x')`, `->table('x')`, `->from('x')` | laravel / symfony |
 
-## preset — フレームワークの規約
+For each pair of classes touching the same table, one reference is added in each direction. Tables with no model at all (raw SQL on both sides) become pairs too.
 
-どの呼び出しが非同期に渡しているのか、どれがコンテナ経由なのか、どのクラスがテーブルを持つのかは、フレームワークが決めていてコードからは読み取れない。解析の本体に埋めると他のフレームワークで黙って取りこぼすので、preset として外に出してある。
+## preset — framework conventions
+
+Which call hands work off asynchronously, which one goes through the container, which class owns a table: the framework decides all of that, and it cannot be read from the code. Baking it into the analyzer means silently missing it on every other framework, so it lives outside as a preset.
 
 ```bash
 coupling-meter . --preset=symfony
-coupling-meter . --preset=laravel,symfony   # 複数指定するとそれぞれの規約を足す
-coupling-meter . --preset=none              # 規約に依存する検出をすべて切る
+coupling-meter . --preset=laravel,symfony   # several presets add up
+coupling-meter . --preset=none              # turn off everything convention-dependent
 ```
 
-省略したときは `composer.json` の require から推測する（`laravel/*` と `illuminate/*` なら laravel、`symfony/*` と `doctrine/*` なら symfony）。実際に使われた preset は出力の見出しと `--json` の `preset` に出る。
+When omitted, presets are guessed from the `require` section of `composer.json` (`laravel/*` and `illuminate/*` for laravel, `symfony/*` and `doctrine/*` for symfony). The presets actually used appear in the header line and in `preset` in `--json`.
 
-| preset | 拾えるようになるもの |
+| preset | What it makes visible |
 |---|---|
-| laravel | `Job::dispatch()` / `dispatch(new Job)` / `event(new E)` を非同期として距離に反映、`app(Foo::class)` と `$container->make(Foo::class)` のコンテナ解決、Eloquent モデルのテーブル |
-| symfony | `$bus->dispatch(new Message)` を非同期として距離に反映、`$container->get(Foo::class)` のコンテナ解決、Doctrine エンティティのテーブル |
+| laravel | `Job::dispatch()` / `dispatch(new Job)` / `event(new E)` as asynchronous (which affects distance), container resolution through `app(Foo::class)` and `$container->make(Foo::class)`, Eloquent model tables |
+| symfony | `$bus->dispatch(new Message)` as asynchronous, container resolution through `$container->get(Foo::class)`, Doctrine entity tables |
 
-### 独自の preset を書く
+### Writing your own preset
 
-プロジェクト固有の規約は `coupling-meter.yaml` の `presets:` に書いて、名前で呼ぶ。組み込みと一緒に指定すれば両方が効く。
+Project-specific conventions go into `presets:` in `coupling-meter.yaml` and are then called by name. Combine them with the built-ins and both apply.
 
 ```yaml
 presets:
   house:
-    async_methods: [publish]          # $emitter->publish(new Event) を非同期として扱う
-    container_methods: [locate]       # $registry->locate(Foo::class) をコンテナ解決として扱う
-    table_attributes: ["Persisted"]   # #[Persisted(name: 'x')] をテーブルの宣言として扱う
+    async_methods: [publish]          # treat $emitter->publish(new Event) as asynchronous
+    container_methods: [locate]       # treat $registry->locate(Foo::class) as container resolution
+    table_attributes: ["Persisted"]   # treat #[Persisted(name: 'x')] as a table declaration
 ```
 
 ```bash
 coupling-meter . --preset=symfony,house
 ```
 
-書けるキーは `container_functions`、`container_methods`、`async_static_methods`、`async_functions`、`async_methods`、`table_builder_methods`、`entity_base_classes`、`table_properties`、`table_attributes`、`pluralize_entity_name`。知らないキーは綴り間違いとして弾く。
+The available keys are `container_functions`, `container_methods`, `async_static_methods`, `async_functions`, `async_methods`, `table_builder_methods`, `entity_base_classes`, `table_properties`, `table_attributes` and `pluralize_entity_name`. Unknown keys are rejected as typos.
 
-ここに置いてよいのは「フレームワークが公式に決めていて、有限で、変わらないもの」だけ。プロジェクトごとの命名規則のように無限に増えるものを入れると preset がメンテできなくなる。
+A preset should only hold what the framework has officially decided, in a finite set that does not change. Per-project naming conventions grow without limit, and putting them here makes presets unmaintainable.
 
-同じテーブルを触るクラスの組ごとに、双方向の参照を 1 件ずつ足す。モデルが 1 つもないテーブル（生 SQL 同士だけ）も組になる。
-
-## インストール
+## Install
 
 ```bash
 composer require --dev techtrain/coupling-meter
 ```
 
-計測したいプロジェクトの外から使うなら、グローバルに入れてもよい。
+To run it from outside the project you are measuring, install it globally.
 
 ```bash
 composer global require techtrain/coupling-meter
 ```
 
-PHP 8.2 以上。解析対象のプロジェクトは PHP のバージョンを問わない（php-parser が読める構文であればよい）。
+Requires PHP 8.2 or newer. The project being analyzed can be any PHP version php-parser can read.
 
-## 使い方
+## Usage
 
 ```bash
-vendor/bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
+vendor/bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--format=text|json|samples|github]
 ```
 
-リポジトリを clone して使う場合は `composer install` のあと `bin/coupling-meter` を実行する。
+When using a clone of this repository, run `bin/coupling-meter` after `composer install`.
 
 ```
 coupling-meter /path/to/project --depth=2
-  クラス 1840 / 参照 12530 / モジュール 22 / 組 111 / 解析コミット 2317 / preset laravel
+  classes 1840 / references 12530 / modules 22 / pairs 111 / commits 2317 / preset laravel
 
-  バランスが崩れている組: 20 / 111
+  unbalanced pairs: 20 / 111
 
-直す順（均衡度の低い順。max(|強度 - 距離|, 10 - 変動性) + 1）
+Fix in this order (lowest balance first: max(|strength - distance|, 10 - volatility) + 1)
    BAL  STRENGTH    STR DIST  VOL  CO-CHG  MODULE PAIR
      1  model         3    3   10     48%  Shop\Checkout -> Shop\Catalog
      2  functional    8    7   10     40%  Billing\Invoice -> Shop\Catalog
      4  intrusive    10    7   10     25%  Legacy\Reports -> Shop\Orders
 
-指摘
-  [型に出ない結合] Shop\Checkout -> Shop\Catalog
-      型の上は model だが、16 回のコミットで同時に変わっている（48%）
-  [踏み込んだ依存が動いている] Legacy\Reports -> Shop\Orders
-      内部に踏み込んだ依存が 31 箇所あり、25% のコミットで同時に変わっている
+Findings
+  [coupling types don't show] Shop\Checkout -> Shop\Catalog
+      model as far as types go, yet they changed together in 16 commits (48%)
+  [intrusive and moving] Legacy\Reports -> Shop\Orders
+      31 places reach inside, and 25% of commits change both
 ```
 
-読み方の例。`Shop\Checkout -> Shop\Catalog` は型の上では model 結合で、Catalog は多くのモジュールが使う共有カーネルとして距離も近い（3）。
-強度も距離も低い低凝集の組だが、Catalog がよく変わり（10）、しかも 48% のコミットで一緒に変わっているので、均衡度は最低の 1 になる。
-`Legacy\Reports -> Shop\Orders` は継承や trait で Orders の内部に踏み込んでおり（10）、名前空間も担当者も離れている（7）。
-均衡度は 4 で上の 2 つより高いが、intrusive かつ同時変更 25% なので指摘としては最も直す価値が高い。
+(The CLI prints in Japanese; the output above is translated for this document.)
 
-## 指摘の種類
+How to read it. `Shop\Checkout -> Shop\Catalog` is model coupling by type, and Catalog is a shared kernel many modules use, so the distance is short (3) too. Both strength and distance are low, which is the low-cohesion quadrant — and because Catalog changes often (10) and 48% of commits change both, the balance lands at the worst value, 1. `Legacy\Reports -> Shop\Orders` reaches into Orders through inheritance and traits (10), and the two are far apart in namespace and ownership (7). Its balance of 4 is better than the two above, but being intrusive with 25% co-change makes it the most worthwhile finding to act on.
 
-| 種類 | 条件 | 読み方 |
+## Kinds of findings
+
+| Kind | Condition | How to read it |
 |---|---|---|
-| 互いに依存 | 双方向とも model 以上で参照している | 層の分割が効いていない |
-| 逆転済みの依存 | 双方向に参照があるが、片方は interface 経由（contract）だけ | DIP で逆転している。情報として出す |
-| 強度も距離も高い | 密結合の象限でバランスが崩れており、参照が 20 箇所以上 | 強度を下げるか、距離を縮める |
-| 近いのに関係が薄い | 低凝集の象限でバランスが崩れており、参照が 20 箇所以上 | 近くに置く理由を確認する |
-| 型に出ない結合 | 型の上は model 以下なのに、5 回以上かつ Jaccard 20% 以上同時に変わる | 静的解析では見えない。設計の意図を確認する |
-| 文字列で書かれた依存 | クラス名を文字列で書いている箇所が 3 件以上 | 型に現れず、名前を変えても追えない |
-| 触っている人が分かれている | 所有者（CODEOWNERS の宣言、なければ git の著者）の重なりが 1/3 未満で、functional 以上が 20 箇所以上 | 変更を合わせるのに人やチームをまたぐ調整が要る |
-| 相手の変動性をもらっている | 自分は変わらない（2 以下）のに、よく変わる相手へ functional 以上で 20 箇所以上依存している | 自分の履歴だけを見ても出てこない変動性がある |
-| 踏み込んだ依存が動いている | intrusive かつ 5 回以上かつ Jaccard 15% 以上同時に変わる | 最も直す価値が高い |
+| Mutual dependency | Both directions reference each other at model or above | The layering is not doing its job |
+| Inverted dependency | Both directions exist, but one goes only through an interface (contract) | Inverted with DIP. Reported for information |
+| High strength and distance | Unbalanced in the tight-coupling quadrant with 20 or more references | Lower the strength or shorten the distance |
+| Close but unrelated | Unbalanced in the low-cohesion quadrant with 20 or more references | Check why they sit next to each other |
+| Coupling types don't show | model or below by type, yet they change together 5 or more times with a Jaccard index of 20% or more | Static analysis cannot see it. Confirm the design intent |
+| Dependency written as a string | Class names written as strings in 3 or more places | Invisible to types, and renaming cannot follow it |
+| Different people touch it | Owner overlap (declared in CODEOWNERS, otherwise git authors) below 1/3 with 20 or more references at functional or above | Changing them together needs coordination across people or teams |
+| Inheriting the other side's volatility | Stable itself (2 or below), yet depending on a frequently changing module at functional or above in 20 or more places | Volatility its own history cannot reveal |
+| Intrusive and moving | intrusive, changing together 5 or more times with a Jaccard index of 15% or more | The most worthwhile thing to fix |
 
-## オプション
+## Options
 
-| オプション | 既定 | 意味 |
+| Option | Default | Meaning |
 |---|---|---|
-| `--include` | なし | root 直下のこのディレクトリだけを見る |
-| `--exclude` | vendor, node_modules, storage, bootstrap/cache, tests, test | 除外を追加する。root 直下だけでなく、途中の階層にある同名ディレクトリも除外する |
-| `--depth` | 2 | 名前空間の何段目までを 1 モジュールとするか |
-| `--since` | 12 months ago | git 履歴をさかのぼる範囲 |
-| `--top` | 15 | 表示する組の数 |
-| `--json` | なし | 機械可読な出力。`--top` に関係なく全組を出す。`--samples` とは同時に指定できない |
-| `--samples` | なし | 組ごとの代表例をファイルと行つきで出す。各例に「なぜその強度か」「1 段弱めるなら何をするか」の定型文を添える。AI に渡して判断させる用 |
-| `--preset` | 自動検出 | フレームワークの規約（`laravel` / `symfony` / `none`、カンマ区切りで複数可）。省略時は composer.json から推測する。`coupling-meter.yaml` の `presets:` で独自に定義できる |
-| `--rules` | 自動検出 | 意図した依存の許可ルール。省略時は root の `coupling-meter.yaml` / `deptrac.yaml` / `deptrac.config.yaml` を探す |
-| `--codeowners` | 自動検出 | 所有者の宣言。省略時は root、`.github/`、`docs/`、`.gitlab/` の `CODEOWNERS` を探す。あれば git の著者より優先する |
-| `--split` | 0 | この数を超えるクラスを持つ名前空間は、その子名前空間を別モジュールとして切る。`App\Models` のような巨大モジュールとの組で VOL と同時変更率が天井に張り付くのを防ぐ。子もまだ大きければさらに切る |
-| `--weight-by-references` | なし | 順位づけを参照数の対数で重み付けする。原著は数ではなく性質を見る立場なので既定では使わない。参照 1 箇所の組が上位を埋めて読みにくいときに |
+| `--include` | none | Look only at these directories directly under root |
+| `--exclude` | vendor, node_modules, storage, bootstrap/cache, tests, test | Add exclusions. Directories with the same name deeper in the tree are excluded too |
+| `--depth` | 2 | How many namespace segments make up one module |
+| `--since` | 12 months ago | How far back to read git history |
+| `--top` | 15 | How many pairs to display |
+| `--json` | none | Machine-readable output. Emits every pair regardless of `--top`. Cannot be combined with `--samples` |
+| `--samples` | none | Representative examples per pair with file and line. Each comes with a short note on why that strength and what would weaken it one step. Meant to be handed to an AI for judgement |
+| `--preset` | auto-detect | Framework conventions (`laravel` / `symfony` / `none`, comma separated). Guessed from composer.json when omitted. Define your own under `presets:` in `coupling-meter.yaml` |
+| `--rules` | auto-detect | Allowed dependencies. Looks for `coupling-meter.yaml` / `deptrac.yaml` / `deptrac.config.yaml` at root when omitted |
+| `--codeowners` | auto-detect | Ownership declaration. Looks for `CODEOWNERS` at root, `.github/`, `docs/` and `.gitlab/` when omitted. Takes precedence over git authors |
+| `--split` | 0 | Namespaces with more classes than this are split into their child namespaces. Prevents VOL and co-change from pinning at the ceiling for pairs involving a huge module such as `App\Models`. Splits again if a child is still too large |
+| `--weight-by-references` | none | Weight the ranking by the logarithm of the reference count. Off by default, since the book looks at the nature of a relationship rather than its count. Useful when pairs with a single reference crowd the top |
+| `--format` | text | Output shape (`text` / `json` / `samples` / `github`). `--json` and `--samples` are aliases for the same thing |
+| `--fail-on` | none | Exit with code 1 if a pair at or below this balance is present |
+| `--baseline` | none | A file recording known pairs. When given, only pairs added or made worse since then are reported |
+| `--write-baseline` | none | Rewrite the `--baseline` file from the current measurement and exit |
 
-## 意図した依存を指摘から外す
+## Using it in CI
 
-DIP で逆転した `Application -> Infrastructure` や、設計上の `Adapter -> Http` のように、設計として認めている方向の依存は指摘の対象から外せる。
-順位表には残る（`--json` では `intended: true`）。
+Coupling is never fixed once and for all — it accumulates faster than it is repaired. So the tool supports recording a baseline once and stopping only what is added on top of it.
 
-deptrac を使っているなら、`deptrac.yaml` の `layers`（`classLike` の正規表現）と `ruleset` をそのまま読む。
+```bash
+# 1. record the current state as the baseline and commit it
+vendor/bin/coupling-meter . --include=src --baseline=.coupling-baseline.json --write-baseline
+
+# 2. in CI, look only at what grew past the baseline; fail when a pair at balance 3 or below appears
+vendor/bin/coupling-meter . --include=src --baseline=.coupling-baseline.json --fail-on=3 --format=github
+```
+
+Any existing codebase starts with plenty of unbalanced pairs, so failing on all of them keeps CI red forever. With a baseline, the order of repair stays a human decision while **newly added imbalance** is the only thing blocked.
+
+`--format=github` emits GitHub Actions annotations. Representative examples carry a file and a line, so they land directly on the pull request diff (GitHub displays up to 10 annotations per job).
+
+```
+::warning title=Coupling balance%3A new pair (balance 1),file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog is strength model(3) / distance 3 / volatility 10. Replace the concrete type with an interface or a DTO
+```
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Nothing crossed the `--fail-on` threshold |
+| 1 | A pair at or below the threshold was added since the baseline |
+| 2 | Nothing to measure (only one module, zero pairs). A flat namespace has no coupling to measure, so it is not reported as green |
+
+### Example workflow
 
 ```yaml
-# coupling-meter.yaml（deptrac を使っていない場合）
+name: coupling
+on: pull_request
+
+jobs:
+  balance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # volatility and co-change need git history
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+      - run: composer install --no-interaction --no-progress
+      - run: >-
+          vendor/bin/coupling-meter . --include=src
+          --baseline=.coupling-baseline.json --fail-on=3 --format=github
+```
+
+Without `fetch-depth: 0` the history is shallow, and volatility and co-change come out empty.
+
+## Excluding intended dependencies from findings
+
+Dependencies you accept by design — `Application -> Infrastructure` inverted with DIP, or `Adapter -> Http` — can be excluded from findings. They stay in the ranking (`intended: true` in `--json`).
+
+If you use deptrac, the `layers` (regular expressions over `classLike`) and `ruleset` in `deptrac.yaml` are read as they are.
+
+```yaml
+# coupling-meter.yaml (when not using deptrac)
 allow:
   - 'App\Application -> App\Domain'
   - 'App\Infrastructure -> App\*'
 ```
 
-`*` はワイルドカード。左が依存する側、右が依存される側。
+`*` is a wildcard. The left side depends on the right side.
 
-## 変動性を宣言する
+## Declaring volatility
 
-git から出るのは観測された変更頻度で、これから変わる見込みは入らない。原著はドメイン分析（コア、支援、汎用のサブドメイン）との併用を求めている。
-分かっているなら `coupling-meter.yaml` に原著の目盛りで書く。git の観測値より優先する。
+What git yields is observed change frequency; it says nothing about what is about to change. The book asks for domain analysis (core, supporting and generic subdomains) alongside it. When you know, write it in `coupling-meter.yaml` on the book's scale. It takes precedence over the observed value.
 
 ```yaml
 volatility:
-  'App\Domain\Pricing': 10   # コアサブドメイン。これからも変わり続ける
-  'App\Legacy': 1             # 塩漬け。触らない
+  'App\Domain\Pricing': 10   # core subdomain, and it will keep changing
+  'App\Legacy': 1            # frozen, nobody touches it
 ```
 
-## 所有者を宣言する
+## Declaring ownership
 
-git の著者から出るのは「実際に触った人」で、責任を持つチームとは限らない。1 人が全部書いたリポジトリでは、どの組も所有者が重なって見える。
-リポジトリに `CODEOWNERS`（root、`.github/`、`docs/`、`.gitlab/` のいずれか）があれば、そこに宣言された所有者を git の著者より優先して距離に使う。
+Git authorship tells you who actually touched the code, not which team is responsible. In a repository written entirely by one person, every pair looks like it shares an owner. If the repository has a `CODEOWNERS` file (at root, `.github/`, `docs/` or `.gitlab/`), the owners declared there take precedence over git authors when computing distance.
 
 ```
 # .github/CODEOWNERS
@@ -227,48 +279,43 @@ git の著者から出るのは「実際に触った人」で、責任を持つ�
 /app/Shop/      @org/shop
 ```
 
-照合は gitignore と同じ規則で、後に書いた行が勝つ。所有者のない行はそれまでの所有者を打ち消す。`docs/*` のように末尾が `*` の pattern はその階層だけに効く（GitHub と同じ）。
-モジュールの所有者は、そのモジュールのファイルに宣言された所有者の和集合になる。
+Matching follows gitignore rules, later lines win, and a line with no owner cancels the owners set before it. A pattern ending in `*`, such as `docs/*`, applies to that level only (same as GitHub). A module's owners are the union of the owners declared for its files.
 
-宣言と観測を混ぜて比べると、宣言のあるモジュールとないモジュールの組が全部「離れている」になってしまう。そのため両方のモジュールに宣言があるときだけ宣言で比べ、それ以外は著者で比べる。`--json` の `owners_declared` で、その組がどちらで比べられたかを確かめられる。
+Mixing declared and observed ownership would mark every pair between a declared module and an undeclared one as "far apart". So declarations are compared only when both modules have them, and git authors are used otherwise. `owners_declared` in `--json` tells you which comparison was used for a given pair.
 
-## 測らないもの
+## What it does not measure
 
-- **本物の変動性**。git 履歴から出るのは観測された変更頻度であって、設計が悪くて頻繁に変わっている場合と、
-  危険で誰も触れていない場合を区別しない。原著はソース管理の解析とドメイン分析を併用すべきとしている。
-  変更の種類で重み付けはするが、サブドメインの判定（コア、支援、汎用）はしない。分かっているなら `volatility` で宣言する
-- **勤務地とタイムゾーン**。所有者は CODEOWNERS の宣言か git のコミット著者から見るだけで、チームがどこにいるか、時差があるかは見ていない
-- **実行時結合による距離の一部**。`dispatch` / `event` / `broadcast` で渡す非同期は見るが、Observer やリスナーの登録、スケジューラ経由の起動は追えない
-- **実行時の依存の一部**。`app(Foo::class)` や `$this->app->make(Foo::class)` のようにクラス名が式として書かれていれば追える。
-  文字列で組み立てたクラス名、Facade 越しの呼び出し、設定ファイル経由の解決は追えない
-- **依存の数**。原著は関係の数ではなく性質を見る立場を取る。実装もそれに従うため、参照 1 箇所の依存が上位に来る。読みにくければ `--weight-by-references`
-- テストコード（既定で除外する）
+- **Real volatility.** Git history yields observed change frequency, which does not distinguish "changes often because the design is bad" from "nobody dares touch it". The book asks for source control analysis and domain analysis together. Changes are weighted by kind, but subdomains (core, supporting, generic) are never inferred. Declare them under `volatility` when you know
+- **Location and time zones.** Ownership comes from CODEOWNERS or git commit authors only; where the team sits and how the hours overlap is not considered
+- **Part of runtime coupling in distance.** Asynchronous handoffs through `dispatch` / `event` / `broadcast` are seen, but observer and listener registration, and scheduler-driven invocation, are not
+- **Part of runtime dependencies.** Class names written as expressions, such as `app(Foo::class)` or `$this->app->make(Foo::class)`, are followed. Class names assembled from strings, calls through facades, and resolution driven by config files are not
+- **The number of dependencies.** The book looks at the nature of a relationship rather than its count, and so does the implementation — which means a dependency with a single reference can rank high. Use `--weight-by-references` when that makes the output hard to read
+- Test code (excluded by default)
 
-## 先行する指標との関係
+## Relation to earlier metrics
 
-| 系統 | 例 | 本ツールとの関係 |
+| Family | Examples | How this tool relates |
 |---|---|---|
-| 依存の数を数える | Martin の指標。PHP では PhpMetrics、PDepend | 数ではなく性質を 4 段階に分類する |
-| 境界の違反を出す | deptrac、PHPArkitect | 二値ではなく、崩れの度合いと順位を出す |
-| 履歴から結合を見つける | CodeScene、Code Maat、Qafoo changetrack | 同じ考え方を使う。AST 由来の強度と 1 つの表にまとめた点が違う |
-| 結合の質を分類する | 構造化設計の結合度（1974）、connascence | 分類を機械判定に落とした |
+| Counting dependencies | Martin's metrics; PhpMetrics and PDepend in PHP | Classifies the nature into four levels instead of counting |
+| Reporting boundary violations | deptrac, PHPArkitect | Reports the degree of imbalance and an order, not a binary verdict |
+| Finding coupling in history | CodeScene, Code Maat, Qafoo changetrack | Uses the same idea. The difference is putting it in one table together with AST-derived strength |
+| Classifying the quality of coupling | Structured design coupling (1974), connascence | Turns the classification into a mechanical decision |
 
-著者自身も [vladikk/modularity](https://github.com/vladikk/modularity) で Claude Code スキルを公開している。
-あちらは判断の枠組みを AI に渡すもので、計測はしない。本ツールは同じ入力に同じ出力を返す代わりに、判断はしない。
+The author also publishes a Claude Code skill, [vladikk/modularity](https://github.com/vladikk/modularity). That one hands the framework for judgement to an AI and does not measure. This tool returns the same output for the same input, and does not judge.
 
-## 開発
+## Development
 
 ```bash
 composer check      # phpstan (level max) → php-cs-fixer (dry-run) → phpunit
-composer phpstan    # 静的解析だけ
-composer cs-fix     # コードスタイルを直す
-composer test       # テストだけ
+composer phpstan    # static analysis only
+composer cs-fix     # fix code style
+composer test       # tests only
 ```
 
-CI では PHP 8.2 から 8.5 の各バージョンで phpstan とテスト（PCOV でカバレッジを取り Codecov に送る）を回し、php-cs-fixer で整形を確認する。
+CI runs phpstan and the tests on PHP 8.2 through 8.5 (collecting coverage with PCOV and sending it to Codecov), and checks formatting with php-cs-fixer.
 
-`tests/fixtures/` に判定を確かめるための小さなプロジェクトを置いてある。
+`tests/fixtures/` holds small projects used to verify the decisions.
 
-## ライセンス
+## License
 
 MIT

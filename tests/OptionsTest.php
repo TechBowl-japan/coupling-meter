@@ -116,4 +116,41 @@ final class OptionsTest extends TestCase
         $this->assertSame('.github/CODEOWNERS', $options->codeowners);
         $this->assertNull(Options::parse(['/p'])->codeowners);
     }
+
+    public function testFormatDefaultsToTextAndFollowsTheFlags(): void
+    {
+        $this->assertSame('text', Options::parse(['.'])->format);
+        $this->assertSame('json', Options::parse(['.', '--json'])->format);
+        $this->assertSame('samples', Options::parse(['.', '--samples'])->format);
+        $this->assertSame('github', Options::parse(['.', '--format=github'])->format);
+    }
+
+    public function testUnknownFormatIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/--format/');
+
+        Options::parse(['.', '--format=xml']);
+    }
+
+    public function testFormatAndTheOldFlagsCannotBeMixed(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        Options::parse(['.', '--format=github', '--json']);
+    }
+
+    public function testFailOnTakesAnInteger(): void
+    {
+        $this->assertNull(Options::parse(['.'])->failOn);
+        $this->assertSame(3, Options::parse(['.', '--fail-on=3'])->failOn);
+    }
+
+    public function testWriteBaselineNeedsABaselinePath(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/--baseline/');
+
+        Options::parse(['.', '--write-baseline']);
+    }
 }
