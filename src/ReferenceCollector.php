@@ -13,16 +13,6 @@ use PhpParser\NodeVisitorAbstract;
  */
 final class ReferenceCollector extends NodeVisitorAbstract
 {
-    /** コンテナに生成を任せる関数。Laravel と Symfony でよく使われるもの。 */
-    private const CONTAINER_FUNCTIONS = ['app', 'resolve'];
-
-    /** 非同期の起動。Job::dispatch()、dispatch(new Job)、event(new Event) のような形。 */
-    private const ASYNC_STATIC_METHODS = ['dispatch', 'dispatchafterresponse'];
-    private const ASYNC_FUNCTIONS = ['dispatch', 'event', 'broadcast'];
-
-    /** コンテナのメソッド。$this->app->make(Foo::class) のような形。 */
-    private const CONTAINER_METHODS = ['make', 'makewith', 'bind', 'singleton', 'instance'];
-
     /** @var list<Reference> */
     private array $references = [];
 
@@ -54,6 +44,8 @@ final class ReferenceCollector extends NodeVisitorAbstract
     public function __construct(
         private readonly array $index,
         private readonly string $file,
+        /** フレームワークの規約。どの呼び出しが非同期か、どれがコンテナ経由かはここが決める */
+        private readonly Preset $preset = new Preset('none'),
     ) {
         $this->consumed = new \SplObjectStorage();
     }
@@ -230,7 +222,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
             $target = $node->class->toString();
             // Job::dispatch() はキューに積む。呼び出しではあるが実行は別のプロセス。
             $async = $node->name instanceof Node\Identifier
-                && \in_array($node->name->toLowerString(), self::ASYNC_STATIC_METHODS, true);
+                && \in_array($node->name->toLowerString(), $this->preset->asyncStaticMethods, true);
             $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, $async ? 'async-dispatch' : 'static-call', $line);
 
             return;
@@ -239,7 +231,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
         // dispatch(new Job) / event(new Event)。生成そのものより、非同期に渡している事実を記録する。
         if ($node instanceof Node\Expr\FuncCall
             && $node->name instanceof Node\Name
-            && \in_array(strtolower($node->name->toString()), self::ASYNC_FUNCTIONS, true)
+            && \in_array(strtolower($node->name->toString()), $this->preset->asyncFunctions, true)
         ) {
             $first = $node->getArgs()[0] ?? null;
             if ($first !== null && $first->value instanceof Node\Expr\New_ && $first->value->class instanceof Node\Name) {
@@ -267,7 +259,7 @@ final class ReferenceCollector extends NodeVisitorAbstract
         // コンテナ経由の解決。相手の存在と、生成を任せられることを知っている。
         if ($node instanceof Node\Expr\FuncCall
             && $node->name instanceof Node\Name
-            && \in_array(strtolower($node->name->toString()), self::CONTAINER_FUNCTIONS, true)
+            && \in_array(strtolower($node->name->toString()), $this->preset->containerFunctions, true)
         ) {
             $target = $this->classConstArgument($node->getArgs());
             if ($target !== null) {
@@ -277,9 +269,25 @@ final class ReferenceCollector extends NodeVisitorAbstract
             }
         }
 
+        // $bus->dispatch(new Message) / $dispatcher->dispatch(new Event)。
+        // Laravel の関数版と同じく、生成ではなく非同期に渡している事実を記録する。
         if ($node instanceof Node\Expr\MethodCall
             && $node->name instanceof Node\Identifier
-            && \in_array(strtolower($node->name->toString()), self::CONTAINER_METHODS, true)
+            && \in_array(strtolower($node->name->toString()), $this->preset->asyncMethods, true)
+        ) {
+            $first = $node->getArgs()[0] ?? null;
+            if ($first !== null && $first->value instanceof Node\Expr\New_ && $first->value->class instanceof Node\Name) {
+                $target = $first->value->class->toString();
+                $this->consumed->attach($first->value);
+                $this->add($target, $this->isAbstraction($target) ? Strength::Contract : Strength::Functional, 'async-dispatch', $line);
+
+                return;
+            }
+        }
+
+        if ($node instanceof Node\Expr\MethodCall
+            && $node->name instanceof Node\Identifier
+            && \in_array(strtolower($node->name->toString()), $this->preset->containerMethods, true)
         ) {
             $target = $this->classConstArgument($node->getArgs());
             if ($target !== null) {

@@ -12,6 +12,7 @@ use Techtrain\CouplingMeter\GitHistory;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Options;
 use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Presets;
 
 /**
  * 1 人が全部書いたリポジトリでも、CODEOWNERS で別チームに振られていれば距離が 1 段遠くなる。
@@ -52,7 +53,7 @@ final class CodeOwnersReportTest extends TestCase
 
     private function build(?CodeOwners $codeOwners): Pair
     {
-        $analyzer = new Analyzer($this->repo, Options::DEFAULT_EXCLUDES);
+        $analyzer = new Analyzer($this->repo, Options::DEFAULT_EXCLUDES, preset: Presets::resolve(['laravel']));
         $analyzer->run();
         $git = new GitHistory($this->repo, '10 years ago');
         $this->assertTrue($git->load());

@@ -11,6 +11,7 @@ use Techtrain\CouplingMeter\GitHistory;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Options;
 use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Presets;
 
 /**
  * git 履歴つきの小さなリポジトリを作って、分母の扱いを確かめる。
@@ -49,7 +50,7 @@ final class BalanceReportTest extends TestCase
         file_put_contents("{$this->repo}/app/C/Z.php", "<?php\nnamespace App\\C;\nfinal class Z {}\n");
         file_put_contents("{$this->repo}/app/D/W.php", "<?php\nnamespace App\\D;\nfinal class W {}\n");
 
-        $analyzer = new Analyzer($this->repo, Options::DEFAULT_EXCLUDES);
+        $analyzer = new Analyzer($this->repo, Options::DEFAULT_EXCLUDES, preset: Presets::resolve(['laravel']));
         $analyzer->run();
         $git = new GitHistory($this->repo, '10 years ago');
         $this->assertTrue($git->load());

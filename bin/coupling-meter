@@ -11,6 +11,7 @@ use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Options;
 use Techtrain\CouplingMeter\Packages;
 use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Presets;
 use Techtrain\CouplingMeter\Rules;
 
 foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
@@ -48,6 +49,9 @@ if ($options->help || $options->path === null) {
           --codeowners
                       所有者の宣言（CODEOWNERS）。省略時は root / .github / docs / .gitlab の CODEOWNERS を探す。
                       あれば git の著者より優先して、担当が分かれている組の距離に使う
+          --preset    フレームワークの規約（laravel / symfony / none、カンマ区切りで複数可）。
+                      省略時は composer.json から推測する。coupling-meter.yaml の presets: で
+                      独自の preset を定義して名前で呼べる
           --split     この数を超えるクラスを持つ名前空間は 1 段深く切る（既定 0 = 切らない）
           --weight-by-references
                       順位づけを参照数の対数で重み付けする
@@ -62,13 +66,22 @@ if ($root === false || !is_dir($root)) {
     exit(1);
 }
 
+try {
+    $customPresets = Presets::custom($root, $options->rules);
+    $presetNames = $options->presets ?? Presets::detect($root);
+    $preset = Presets::resolve($presetNames, $customPresets);
+} catch (\InvalidArgumentException $e) {
+    fwrite(STDERR, $e->getMessage() . "\n");
+    exit(1);
+}
+
 $depth = $options->depth;
 $since = $options->since;
 $top = $options->top;
 $excludes = $options->excludes;
 $includes = $options->includes;
 
-$analyzer = new Analyzer($root, $excludes, $includes);
+$analyzer = new Analyzer($root, $excludes, $includes, $preset);
 $analyzer->run();
 
 $git = new GitHistory($root, $since);
@@ -131,6 +144,7 @@ if ($options->samples) {
 if ($options->json) {
     $payload = [
         'root' => $root,
+        'preset' => $preset->name,
         'stats' => $stats,
         'pairs' => array_map(static function (Pair $pair): array {
             $array = $pair->toArray();
@@ -149,7 +163,7 @@ $dim = static fn (string $text): string => "\033[2m{$text}\033[0m";
 
 fwrite(STDOUT, "\n" . $bold('coupling-meter') . ' ' . $dim($root) . "\n");
 fwrite(STDOUT, sprintf(
-    "  クラス %d / 参照 %d / モジュール %d / 組 %d / 解析コミット %s\n\n",
+    "  クラス %d / 参照 %d / モジュール %d / 組 %d / 解析コミット %s / preset %s\n\n",
     $stats['classes'],
     $stats['references'],
     $stats['modules'],
@@ -159,6 +173,7 @@ fwrite(STDOUT, sprintf(
         $git->isRepository() => '—（期間内に PHP を触ったコミットなし。--since を広げると出る）',
         default => '—（git 履歴なし）',
     },
+    $preset->name,
 ));
 
 $unbalanced = count(array_filter($pairs, static fn (Pair $pair): bool => !$pair->balanced));
