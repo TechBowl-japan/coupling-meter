@@ -34,6 +34,8 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 | 変更の中身 | git log | Conventional Commits の prefix から、機能を足す変更（feat、perf）、修正（fix）、整備（refactor ほか）に分ける |
 | co-change | git log | 2 つのモジュールが同じコミットで変わった割合。コミット集合の Jaccard 係数（共起 / 和集合）。何とでも一緒に変わる巨大モジュールとの組が 100% に張り付かないようにしている |
 
+`--json` には `co_change_subjects` も入る。両方のモジュールを変えたコミットの subject が最大 5 件。率だけでは、構造から来る必然なのか、同じ機能追加に巻き込まれただけなのかが分からないので、そこを判断する側に中身を渡す。
+
 3 以上を高、2 以下を低として規則に入れ、象限とバランスの成否を出す。
 
 順位づけには原著 10.3 の均衡結合方程式を使う。3 つの次元を 1 から 10 の目盛りに載せて計算する。

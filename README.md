@@ -32,6 +32,8 @@ A pair is modular when strength and distance cancel each other out, and complex 
 | Kind of change | git log | Conventional Commits prefixes split changes into evolution (feat, perf), correction (fix) and maintenance (refactor and others) |
 | co-change | git log | How often the two modules change in the same commit. The Jaccard index of their commit sets (intersection / union), so that a pair involving a huge module that changes with everything does not pin at 100% |
 
+`--json` also carries `co_change_subjects`: the messages of up to five commits that changed both modules. The rate alone cannot tell a structural necessity from two modules being swept into the same feature; the messages are there for whoever, or whatever, makes that call.
+
 Three and above counts as high, two and below as low. Those feed the rules and produce the quadrant and the balance verdict.
 
 Ranking uses the balanced coupling equation from section 10.3, with all three dimensions placed on a 1 to 10 scale.
