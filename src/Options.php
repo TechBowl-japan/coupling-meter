@@ -15,10 +15,13 @@ final class Options
     public const DEFAULT_EXCLUDES = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
 
     /** 値が要るオプション */
-    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners', 'preset'];
+    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners', 'preset', 'format', 'fail-on', 'baseline'];
 
     /** 値を取らないオプション */
-    private const FLAGS = ['help', 'json', 'samples', 'weight-by-references'];
+    private const FLAGS = ['help', 'json', 'samples', 'weight-by-references', 'write-baseline'];
+
+    /** 出力の形。json と samples は --json / --samples でも指定できる */
+    public const FORMATS = ['text', 'json', 'samples', 'github'];
 
     /**
      * @param list<string> $includes
@@ -45,6 +48,14 @@ final class Options
         public readonly ?string $codeowners,
         /** フレームワークの規約。null なら composer.json から推測する。空なら何も足さない */
         public readonly ?array $presets,
+        /** 出力の形。self::FORMATS のいずれか */
+        public readonly string $format,
+        /** この均衡度以下の組があれば終了コード 1。null なら落とさない */
+        public readonly ?int $failOn,
+        /** 既知の組を記録したファイル。あれば、そこから増えたぶんだけを見る */
+        public readonly ?string $baseline,
+        /** baseline のファイルを今の計測で書き直して終わる */
+        public readonly bool $writeBaseline,
     ) {
     }
 
@@ -97,6 +108,21 @@ final class Options
             throw new \InvalidArgumentException('--json と --samples は同時に指定できません');
         }
 
+        $format = $values['format'] ?? match (true) {
+            isset($flags['json']) => 'json',
+            isset($flags['samples']) => 'samples',
+            default => 'text',
+        };
+        if (!\in_array($format, self::FORMATS, true)) {
+            throw new \InvalidArgumentException('--format には ' . implode(' / ', self::FORMATS) . ' を指定してください: ' . $format);
+        }
+        if (isset($values['format']) && (isset($flags['json']) || isset($flags['samples']))) {
+            throw new \InvalidArgumentException('--format と --json / --samples は同時に指定できません');
+        }
+        if (isset($flags['write-baseline']) && !isset($values['baseline'])) {
+            throw new \InvalidArgumentException('--write-baseline には --baseline=<file> が必要です');
+        }
+
         $excludes = self::DEFAULT_EXCLUDES;
         if (isset($values['exclude'])) {
             $excludes = [...$excludes, ...self::list($values['exclude'])];
@@ -109,14 +135,18 @@ final class Options
             top: self::integer('top', $values['top'] ?? '15'),
             includes: isset($values['include']) ? self::list($values['include']) : [],
             excludes: $excludes,
-            json: $flags['json'] ?? false,
-            samples: $flags['samples'] ?? false,
+            json: $format === 'json',
+            samples: $format === 'samples',
             help: $flags['help'] ?? false,
             rules: $values['rules'] ?? null,
             split: self::integerOrZero('split', $values['split'] ?? '0'),
             weightByReferences: $flags['weight-by-references'] ?? false,
             codeowners: $values['codeowners'] ?? null,
             presets: isset($values['preset']) ? self::list($values['preset']) : null,
+            format: $format,
+            failOn: isset($values['fail-on']) ? self::integer('fail-on', $values['fail-on']) : null,
+            baseline: $values['baseline'] ?? null,
+            writeBaseline: $flags['write-baseline'] ?? false,
         );
     }
 
