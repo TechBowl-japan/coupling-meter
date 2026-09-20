@@ -153,4 +153,11 @@ final class OptionsTest extends TestCase
 
         Options::parse(['.', '--write-baseline']);
     }
+
+    public function testMaxCommitFilesDefaultsToFiftyAndAcceptsZero(): void
+    {
+        $this->assertSame(50, Options::parse(['.'])->maxCommitFiles);
+        $this->assertSame(0, Options::parse(['.', '--max-commit-files=0'])->maxCommitFiles);
+        $this->assertSame(200, Options::parse(['.', '--max-commit-files=200'])->maxCommitFiles);
+    }
 }
