@@ -92,7 +92,7 @@ final class OptionsTest extends TestCase
     {
         // 両方渡すと --samples が黙って勝っていた
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('--json と --samples');
+        $this->expectExceptionMessage('--json and --samples');
 
         Options::parse(['/p', '--json', '--samples']);
     }

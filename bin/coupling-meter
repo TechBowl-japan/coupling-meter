@@ -27,42 +27,47 @@ foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php
 try {
     $options = Options::parse(array_slice($argv, 1));
 } catch (\InvalidArgumentException $e) {
-    fwrite(STDERR, $e->getMessage() . "\n--help で使い方を表示します。\n");
+    fwrite(STDERR, $e->getMessage() . "\nRun --help for usage.\n");
     exit(1);
 }
 
 if ($options->help || $options->path === null) {
     fwrite(STDOUT, <<<TEXT
-        coupling-meter — PHP プロジェクトの結合バランスを測る
+        coupling-meter — measure the coupling balance of a PHP project
 
-        使い方:
+        Usage:
           coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth=2] [--since="12 months ago"] [--top=15] [--json|--samples]
 
-        オプション:
-          --depth     名前空間の何段目までを 1 モジュールとするか（既定 2）
-          --since     git 履歴をさかのぼる範囲（既定 "12 months ago"）
-          --top       表示する組の数（既定 15）
-          --include   解析対象を root 直下のディレクトリに限定する（カンマ区切り）
-          --exclude   除外ディレクトリをカンマ区切りで追加
-          --json      機械可読な JSON で出力する（--format=json と同じ）
-          --samples   組ごとの代表例をファイルと行つきで出す（AI に渡して判断させる用。--format=samples と同じ）
-          --format    出力の形（text / json / samples / github）。github は GitHub Actions の
-                      注釈として出す
-          --fail-on   均衡度がこの値以下の組があれば終了コード 1 を返す（CI 用）
-          --baseline  既知の組を記録したファイル。あれば、そこから増えた組と悪くなった組だけを見る
+        Options:
+          --depth     how many namespace segments make up one module (default 2)
+          --since     how far back to read git history (default "12 months ago")
+          --top       how many pairs to display (default 15)
+          --include   look only at these directories under root (comma separated)
+          --exclude   add excluded directories (comma separated)
+          --json      machine-readable JSON output (same as --format=json)
+          --samples   representative examples per pair with file and line, meant to be
+                      handed to an AI for judgement (same as --format=samples)
+          --format    output shape (text / json / samples / github). github emits
+                      GitHub Actions annotations
+          --fail-on   exit with code 1 if a pair at or below this balance is present
+          --baseline  file recording known pairs. Only pairs added or made worse
+                      since then are reported
           --write-baseline
-                      今の計測で --baseline のファイルを書き直して終わる
-          --rules     意図した依存の許可ルール（deptrac.yaml か coupling-meter.yaml）。
-                      省略時は root の coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml を探す
+                      rewrite the --baseline file from the current measurement and exit
+          --rules     allowed dependencies (deptrac.yaml or coupling-meter.yaml).
+                      Looks for coupling-meter.yaml / deptrac.yaml / deptrac.config.yaml
+                      at root when omitted
           --codeowners
-                      所有者の宣言（CODEOWNERS）。省略時は root / .github / docs / .gitlab の CODEOWNERS を探す。
-                      あれば git の著者より優先して、担当が分かれている組の距離に使う
-          --preset    フレームワークの規約（laravel / symfony / none、カンマ区切りで複数可）。
-                      省略時は composer.json から推測する。coupling-meter.yaml の presets: で
-                      独自の preset を定義して名前で呼べる
-          --split     この数を超えるクラスを持つ名前空間は 1 段深く切る（既定 0 = 切らない）
+                      ownership declaration (CODEOWNERS). Looks at root, .github,
+                      docs and .gitlab when omitted. Takes precedence over git authors
+                      when deciding which pairs are owned by different people
+          --preset    framework conventions (laravel / symfony / none, comma separated).
+                      Guessed from composer.json when omitted. Define your own under
+                      presets: in coupling-meter.yaml and call it by name
+          --split     split namespaces with more classes than this one level deeper
+                      (default 0 = never split)
           --weight-by-references
-                      順位づけを参照数の対数で重み付けする
+                      weight the ranking by the logarithm of the reference count
 
         TEXT);
     exit($options->path === null && !$options->help ? 1 : 0);
@@ -70,7 +75,7 @@ if ($options->help || $options->path === null) {
 
 $root = realpath($options->path);
 if ($root === false || !is_dir($root)) {
-    fwrite(STDERR, "解析対象のディレクトリが見つかりません: {$options->path}\n");
+    fwrite(STDERR, "Directory to analyze not found: {$options->path}\n");
     exit(1);
 }
 
@@ -113,14 +118,14 @@ $findings = $report->findings();
 
 // AI や人が読むための、境界ごとの代表例。コード全体ではなく、組の代表だけを出す。
 if ($options->samples) {
-    fwrite(STDOUT, "# 結合の境界と、その代表例\n\n");
+    fwrite(STDOUT, "# Coupling boundaries and their representative examples\n\n");
     fwrite(STDOUT, sprintf(
-        "モジュールの組 %d 件。均衡度の低い順。均衡度は max(|強度 - 距離|, 10 - 変動性) + 1 で、1 が最も複雑性に傾く。\n\n",
+        "%d module pairs, lowest balance first. balance = max(|strength - distance|, 10 - volatility) + 1, where 1 leans furthest toward complexity.\n\n",
         count($pairs),
     ));
     foreach (array_slice($pairs, 0, $top) as $pair) {
         fwrite(STDOUT, sprintf(
-            "## %s -> %s\n\n均衡度 %d / 強度 %s(%d) / 距離 %d / 変動性 %d / 参照 %d 箇所 / 同時変更 %d%%\n\n",
+            "## %s -> %s\n\nbalance %d / strength %s(%d) / distance %d / volatility %d / %d references / %d%% co-change\n\n",
             $pair->from,
             $pair->to,
             $pair->balance,
@@ -133,7 +138,7 @@ if ($options->samples) {
         ));
         foreach ($pair->samples as $sample) {
             fwrite(STDOUT, sprintf(
-                "- %s:%d  %s（%s）  %s -> %s\n    なぜ: %s\n    次に: %s\n",
+                "- %s:%d  %s (%s)  %s -> %s\n    why:  %s\n    next: %s\n",
                 $sample['file'],
                 $sample['line'],
                 $sample['strength'],
@@ -169,10 +174,10 @@ if ($options->json) {
 // CI 向け。基準からの増分だけを見て、終了コードで知らせる。
 if ($options->writeBaseline) {
     if (file_put_contents((string) $options->baseline, Baseline::render($pairs)) === false) {
-        fwrite(STDERR, "基準ファイルを書けません: {$options->baseline}\n");
+        fwrite(STDERR, "Cannot write the baseline file: {$options->baseline}\n");
         exit(1);
     }
-    fwrite(STDOUT, sprintf("%s に %d 組を記録しました\n", $options->baseline, count($pairs)));
+    fwrite(STDOUT, sprintf("Recorded %d pairs in %s\n", count($pairs), $options->baseline));
     exit(0);
 }
 
@@ -203,10 +208,10 @@ if ($ci) {
         foreach ($regressions as $entry) {
             $pair = $entry['pair'];
             fwrite(STDOUT, sprintf(
-                "  %s  均衡度 %d%s  %s -> %s\n",
-                $entry['was'] === null ? '新規' : '悪化',
+                "  %s  balance %d%s  %s -> %s\n",
+                $entry['was'] === null ? 'new  ' : 'worse',
                 $pair->balance,
-                $entry['was'] === null ? '' : sprintf('（%d から）', $entry['was']),
+                $entry['was'] === null ? '' : sprintf(' (was %d)', $entry['was']),
                 $pair->from,
                 $pair->to,
             ));
@@ -216,18 +221,18 @@ if ($ci) {
     // モジュールが 1 つしかないと組は 0 件になる。測れていないことを緑で通さない。
     if ($pairs === []) {
         fwrite(STDERR, sprintf(
-            "測定対象がありません（モジュール %d / 組 0）。名前空間が 1 つだけのプロジェクトでは組ができません。--depth を見直してください。\n",
+            "Nothing to measure (%d module, 0 pairs). A project with a single namespace produces no pairs. Review --depth.\n",
             $stats['modules'],
         ));
         exit(2);
     }
 
     fwrite(STDOUT, sprintf(
-        "%s組 %d / 基準から増えた組 %d%s\n",
+        "%s%d pairs / %d added since the baseline%s\n",
         $options->format === 'github' ? '' : "\n",
         count($pairs),
         count($regressions),
-        $options->failOn === null ? '' : sprintf('（均衡度 %d 以下）', $options->failOn),
+        $options->failOn === null ? '' : sprintf(' (at balance %d or below)', $options->failOn),
     ));
 
     exit($options->failOn !== null && $regressions !== [] ? 1 : 0);
@@ -238,27 +243,27 @@ $dim = static fn (string $text): string => "\033[2m{$text}\033[0m";
 
 fwrite(STDOUT, "\n" . $bold('coupling-meter') . ' ' . $dim($root) . "\n");
 fwrite(STDOUT, sprintf(
-    "  クラス %d / 参照 %d / モジュール %d / 組 %d / 解析コミット %s / preset %s\n\n",
+    "  classes %d / references %d / modules %d / pairs %d / commits %s / preset %s\n\n",
     $stats['classes'],
     $stats['references'],
     $stats['modules'],
     $stats['pairs'],
     match (true) {
         $hasGit => (string) $stats['commits'],
-        $git->isRepository() => '—（期間内に PHP を触ったコミットなし。--since を広げると出る）',
-        default => '—（git 履歴なし）',
+        $git->isRepository() => '— (no commit touched PHP in this window; widen --since)',
+        default => '— (no git history)',
     },
     $preset->name,
 ));
 
 $unbalanced = count(array_filter($pairs, static fn (Pair $pair): bool => !$pair->balanced));
 fwrite(STDOUT, sprintf(
-    "  バランスが崩れている組: %d / %d\n\n",
+    "  unbalanced pairs: %d / %d\n\n",
     $unbalanced,
     count($pairs),
 ));
 
-fwrite(STDOUT, $bold('直す順') . $dim('（均衡度の低い順。max(|強度 - 距離|, 10 - 変動性) + 1）') . "\n");
+fwrite(STDOUT, $bold('Fix in this order') . $dim(' (lowest balance first: max(|strength - distance|, 10 - volatility) + 1)') . "\n");
 fwrite(STDOUT, sprintf("  %4s  %-10s %4s %4s %4s %7s  %s\n", 'BAL', 'STRENGTH', 'STR', 'DIST', 'VOL', 'CO-CHG', 'MODULE PAIR'));
 
 foreach (array_slice($pairs, 0, $top) as $pair) {
@@ -277,17 +282,17 @@ foreach (array_slice($pairs, 0, $top) as $pair) {
 
 if ($findings !== []) {
     $labels = [
-        'mutual' => '互いに依存',
-        'inverted' => '逆転済みの依存',
-        'tight-coupling' => '強度も距離も高い',
-        'low-cohesion' => '近いのに関係が薄い',
-        'hidden' => '型に出ない結合',
-        'string-reference' => '文字列で書かれた依存',
-        'split-ownership' => '触っている人が分かれている',
-        'inherited-volatility' => '相手の変動性をもらっている',
-        'intrusive-and-moving' => '踏み込んだ依存が動いている',
+        'mutual' => 'mutual dependency',
+        'inverted' => 'inverted dependency',
+        'tight-coupling' => 'high strength and distance',
+        'low-cohesion' => 'close but unrelated',
+        'hidden' => "coupling types don't show",
+        'string-reference' => 'dependency written as a string',
+        'split-ownership' => 'different people touch it',
+        'inherited-volatility' => "inheriting the other side's volatility",
+        'intrusive-and-moving' => 'intrusive and moving',
     ];
-    fwrite(STDOUT, "\n" . $bold('指摘') . "\n");
+    fwrite(STDOUT, "\n" . $bold('Findings') . "\n");
     foreach (array_slice($findings, 0, $top) as $finding) {
         fwrite(STDOUT, sprintf("  [%s] %s\n      %s\n", $labels[$finding['type']], $finding['pair'], $finding['detail']));
     }
@@ -311,8 +316,8 @@ if ($changeKinds !== []) {
     uasort($rows, static fn (array $a, array $b): int => $b['ratio'] <=> $a['ratio']);
 
     if ($rows !== []) {
-        fwrite(STDOUT, "\n" . $bold('変更の中身') . $dim('（機能を足す変更が占める割合）') . "\n");
-        fwrite(STDOUT, "  進化率   進化   修正   整備  MODULE\n");
+        fwrite(STDOUT, "\n" . $bold('Kinds of change') . $dim(' (share of changes that add features)') . "\n");
+        fwrite(STDOUT, "   EVOL%   EVOL    FIX   MAINT  MODULE\n");
         foreach (array_slice($rows, 0, 8, true) as $module => $row) {
             fwrite(STDOUT, sprintf(
                 "  %5d%% %6d %6d %6d  %s\n",
@@ -326,8 +331,8 @@ if ($changeKinds !== []) {
     }
 }
 
-fwrite(STDOUT, "\n" . $dim('BAL は均衡度。1 が最も複雑性に傾き、10 が最もモジュラー。原著 10.3 の式による。') . "\n");
-fwrite(STDOUT, $dim('STR / DIST / VOL は 1 から 10 の目盛り。著者は「これは正確な科学ではない」と断っている。') . "\n");
-fwrite(STDOUT, $dim('DIST は名前空間の共通の祖先から出し、担当が分かれている組（CODEOWNERS の所有者、なければ git の著者）は 1 段遠くしている。') . "\n");
-fwrite(STDOUT, $dim('VOL は git 履歴から観測した変動性。設計が悪くて頻繁に変わっている場合と、危険で触れていない場合を区別しない。') . "\n");
-fwrite(STDOUT, $dim('「バランスが崩れている組」は BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY が偽になる組。--json の balanced で組ごとに見られる。') . "\n\n");
+fwrite(STDOUT, "\n" . $dim('BAL is the balance. 1 leans furthest toward complexity, 10 is the most modular. From section 10.3 of the book.') . "\n");
+fwrite(STDOUT, $dim('STR / DIST / VOL are on a 1 to 10 scale. The author notes that this is not an exact science.') . "\n");
+fwrite(STDOUT, $dim('DIST comes from the nearest common namespace ancestor, pushed one step apart when the owners differ (CODEOWNERS if declared, otherwise git authors).') . "\n");
+fwrite(STDOUT, $dim('VOL is volatility observed from git history. It does not distinguish "changes often because the design is bad" from "nobody dares touch it".') . "\n");
+fwrite(STDOUT, $dim('An unbalanced pair is one where BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY is false. See balanced per pair in --json.') . "\n\n");

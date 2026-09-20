@@ -33,7 +33,7 @@ final class HintsTest extends TestCase
     public function testIntrusiveKindsPointToTheNextWeakerStrength(): void
     {
         // 継承は委譲に、trait は注入に。どちらも intrusive から functional へ落とす
-        $this->assertStringContainsString('委譲', Hints::for('extends')->next);
+        $this->assertStringContainsString('delegation', Hints::for('extends')->next);
         $this->assertStringContainsString('functional', Hints::for('extends')->next);
         $this->assertStringContainsString('functional', Hints::for('use-trait')->next);
     }
@@ -47,7 +47,7 @@ final class HintsTest extends TestCase
     public function testContractKindsNeedNothing(): void
     {
         // すでに契約止まりなら、これ以上弱める必要はない
-        $this->assertStringContainsString('十分', Hints::for('implements')->next);
+        $this->assertStringContainsString('Weak enough', Hints::for('implements')->next);
     }
 
     public function testUnknownKindFallsBackToAGenericHint(): void

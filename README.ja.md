@@ -114,6 +114,10 @@ coupling-meter . --preset=symfony,house
 
 ここに置いてよいのは「フレームワークが公式に決めていて、有限で、変わらないもの」だけ。プロジェクトごとの命名規則のように無限に増えるものを入れると preset がメンテできなくなる。
 
+## 出力の言語
+
+CLI の出力と `--samples` の定型文は英語で書く。公開しているツールなので、出力の言語を実行環境で切り替えることはしない。この文書と、コード内のコメントは日本語のまま。
+
 ## インストール
 
 ```bash
@@ -138,24 +142,24 @@ vendor/bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth
 
 ```
 coupling-meter /path/to/project --depth=2
-  クラス 1840 / 参照 12530 / モジュール 22 / 組 111 / 解析コミット 2317 / preset laravel
+  classes 1840 / references 12530 / modules 22 / pairs 111 / commits 2317 / preset laravel
 
-  バランスが崩れている組: 20 / 111
+  unbalanced pairs: 20 / 111
 
-直す順（均衡度の低い順。max(|強度 - 距離|, 10 - 変動性) + 1）
+Fix in this order (lowest balance first: max(|strength - distance|, 10 - volatility) + 1)
    BAL  STRENGTH    STR DIST  VOL  CO-CHG  MODULE PAIR
      1  model         3    3   10     48%  Shop\Checkout -> Shop\Catalog
      2  functional    8    7   10     40%  Billing\Invoice -> Shop\Catalog
      4  intrusive    10    7   10     25%  Legacy\Reports -> Shop\Orders
 
-指摘
-  [型に出ない結合] Shop\Checkout -> Shop\Catalog
-      型の上は model だが、16 回のコミットで同時に変わっている（48%）
-  [踏み込んだ依存が動いている] Legacy\Reports -> Shop\Orders
-      内部に踏み込んだ依存が 31 箇所あり、25% のコミットで同時に変わっている
+Findings
+  [coupling types don't show] Shop\Checkout -> Shop\Catalog
+      model as far as types go, yet they changed together in 16 commits (48%)
+  [intrusive and moving] Legacy\Reports -> Shop\Orders
+      31 places reach inside, and 25% of commits change both
 ```
 
-読み方の例。`Shop\Checkout -> Shop\Catalog` は型の上では model 結合で、Catalog は多くのモジュールが使う共有カーネルとして距離も近い（3）。
+出力は英語（公開ツールのため）。読み方の例を日本語で示す。`Shop\Checkout -> Shop\Catalog` は型の上では model 結合で、Catalog は多くのモジュールが使う共有カーネルとして距離も近い（3）。
 強度も距離も低い低凝集の組だが、Catalog がよく変わり（10）、しかも 48% のコミットで一緒に変わっているので、均衡度は最低の 1 になる。
 `Legacy\Reports -> Shop\Orders` は継承や trait で Orders の内部に踏み込んでおり（10）、名前空間も担当者も離れている（7）。
 均衡度は 4 で上の 2 つより高いが、intrusive かつ同時変更 25% なので指摘としては最も直す価値が高い。
@@ -164,15 +168,15 @@ coupling-meter /path/to/project --depth=2
 
 | 種類 | 条件 | 読み方 |
 |---|---|---|
-| 互いに依存 | 双方向とも model 以上で参照している | 層の分割が効いていない |
-| 逆転済みの依存 | 双方向に参照があるが、片方は interface 経由（contract）だけ | DIP で逆転している。情報として出す |
-| 強度も距離も高い | 密結合の象限でバランスが崩れており、参照が 20 箇所以上 | 強度を下げるか、距離を縮める |
-| 近いのに関係が薄い | 低凝集の象限でバランスが崩れており、参照が 20 箇所以上 | 近くに置く理由を確認する |
-| 型に出ない結合 | 型の上は model 以下なのに、5 回以上かつ Jaccard 20% 以上同時に変わる | 静的解析では見えない。設計の意図を確認する |
-| 文字列で書かれた依存 | クラス名を文字列で書いている箇所が 3 件以上 | 型に現れず、名前を変えても追えない |
-| 触っている人が分かれている | 所有者（CODEOWNERS の宣言、なければ git の著者）の重なりが 1/3 未満で、functional 以上が 20 箇所以上 | 変更を合わせるのに人やチームをまたぐ調整が要る |
-| 相手の変動性をもらっている | 自分は変わらない（2 以下）のに、よく変わる相手へ functional 以上で 20 箇所以上依存している | 自分の履歴だけを見ても出てこない変動性がある |
-| 踏み込んだ依存が動いている | intrusive かつ 5 回以上かつ Jaccard 15% 以上同時に変わる | 最も直す価値が高い |
+| 互いに依存（mutual dependency） | 双方向とも model 以上で参照している | 層の分割が効いていない |
+| 逆転済みの依存（inverted dependency） | 双方向に参照があるが、片方は interface 経由（contract）だけ | DIP で逆転している。情報として出す |
+| 強度も距離も高い（high strength and distance） | 密結合の象限でバランスが崩れており、参照が 20 箇所以上 | 強度を下げるか、距離を縮める |
+| 近いのに関係が薄い（close but unrelated） | 低凝集の象限でバランスが崩れており、参照が 20 箇所以上 | 近くに置く理由を確認する |
+| 型に出ない結合（coupling types don't show） | 型の上は model 以下なのに、5 回以上かつ Jaccard 20% 以上同時に変わる | 静的解析では見えない。設計の意図を確認する |
+| 文字列で書かれた依存（dependency written as a string） | クラス名を文字列で書いている箇所が 3 件以上 | 型に現れず、名前を変えても追えない |
+| 触っている人が分かれている（different people touch it） | 所有者（CODEOWNERS の宣言、なければ git の著者）の重なりが 1/3 未満で、functional 以上が 20 箇所以上 | 変更を合わせるのに人やチームをまたぐ調整が要る |
+| 相手の変動性をもらっている（inheriting the other side's volatility） | 自分は変わらない（2 以下）のに、よく変わる相手へ functional 以上で 20 箇所以上依存している | 自分の履歴だけを見ても出てこない変動性がある |
+| 踏み込んだ依存が動いている（intrusive and moving） | intrusive かつ 5 回以上かつ Jaccard 15% 以上同時に変わる | 最も直す価値が高い |
 
 ## オプション
 
@@ -212,7 +216,7 @@ vendor/bin/coupling-meter . --include=src --baseline=.coupling-baseline.json --f
 `--format=github` は GitHub Actions の注釈として出す。代表例のファイルと行があるので、PR の差分にそのまま出る（注釈は 1 ジョブ 10 件まで表示される）。
 
 ```
-::warning title=結合バランス%3A 新しい組（均衡度 1）,file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog は強度 model(3) / 距離 3 / 変動性 10。相手が具象なら interface か DTO に置き換える
+::warning title=Coupling balance%3A new pair (balance 1),file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog is strength model(3) / distance 3 / volatility 10. Replace a concrete type with an interface or a DTO
 ```
 
 ### 終了コード

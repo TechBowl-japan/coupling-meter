@@ -112,6 +112,10 @@ The available keys are `container_functions`, `container_methods`, `async_static
 
 A preset should only hold what the framework has officially decided, in a finite set that does not change. Per-project naming conventions grow without limit, and putting them here makes presets unmaintainable.
 
+## Output language
+
+The CLI output and the `--samples` hints are written in English. There is no option to switch languages.
+
 ## Install
 
 ```bash
@@ -152,8 +156,6 @@ Findings
   [intrusive and moving] Legacy\Reports -> Shop\Orders
       31 places reach inside, and 25% of commits change both
 ```
-
-(The CLI prints in Japanese; the output above is translated for this document.)
 
 How to read it. `Shop\Checkout -> Shop\Catalog` is model coupling by type, and Catalog is a shared kernel many modules use, so the distance is short (3) too. Both strength and distance are low, which is the low-cohesion quadrant — and because Catalog changes often (10) and 48% of commits change both, the balance lands at the worst value, 1. `Legacy\Reports -> Shop\Orders` reaches into Orders through inheritance and traits (10), and the two are far apart in namespace and ownership (7). Its balance of 4 is better than the two above, but being intrusive with 25% co-change makes it the most worthwhile finding to act on.
 
@@ -209,7 +211,7 @@ Any existing codebase starts with plenty of unbalanced pairs, so failing on all 
 `--format=github` emits GitHub Actions annotations. Representative examples carry a file and a line, so they land directly on the pull request diff (GitHub displays up to 10 annotations per job).
 
 ```
-::warning title=Coupling balance%3A new pair (balance 1),file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog is strength model(3) / distance 3 / volatility 10. Replace the concrete type with an interface or a DTO
+::warning title=Coupling balance%3A new pair (balance 1),file=src/Shop/Checkout/Cart.php,line=59::Shop\Checkout -> Shop\Catalog is strength model(3) / distance 3 / volatility 10. Replace a concrete type with an interface or a DTO
 ```
 
 ### Exit codes

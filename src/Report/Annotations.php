@@ -22,11 +22,11 @@ final class Annotations
         $pair = $entry['pair'];
         $sample = $pair->samples[0] ?? null;
         $title = $entry['was'] === null
-            ? \sprintf('結合バランス: 新しい組（均衡度 %d）', $pair->balance)
-            : \sprintf('結合バランス: 均衡度が %d から %d へ下がった', $entry['was'], $pair->balance);
+            ? \sprintf('Coupling balance: new pair (balance %d)', $pair->balance)
+            : \sprintf('Coupling balance: balance dropped from %d to %d', $entry['was'], $pair->balance);
 
         $message = \sprintf(
-            '%s -> %s は強度 %s(%d) / 距離 %d / 変動性 %d。%s',
+            '%s -> %s is strength %s(%d) / distance %d / volatility %d. %s',
             $pair->from,
             $pair->to,
             $pair->strength->label(),

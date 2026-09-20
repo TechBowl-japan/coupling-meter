@@ -28,18 +28,18 @@ final class Baseline
     public static function load(string $file): self
     {
         if (!is_file($file)) {
-            throw new \InvalidArgumentException("基準ファイルが見つかりません: {$file}");
+            throw new \InvalidArgumentException("Baseline file not found: {$file}");
         }
 
         $decoded = json_decode((string) file_get_contents($file), true);
         if (!\is_array($decoded) || !isset($decoded['pairs']) || !\is_array($decoded['pairs'])) {
-            throw new \InvalidArgumentException("基準ファイルの形が違います（pairs がありません）: {$file}");
+            throw new \InvalidArgumentException("Baseline file is malformed (no pairs): {$file}");
         }
 
         $balances = [];
         foreach ($decoded['pairs'] as $key => $balance) {
             if (!\is_string($key) || !\is_int($balance)) {
-                throw new \InvalidArgumentException("基準ファイルの pairs は \"From -> To\": 均衡度 の形で書きます: {$file}");
+                throw new \InvalidArgumentException("Baseline pairs must be written as \"From -> To\": balance: {$file}");
             }
             $balances[$key] = $balance;
         }

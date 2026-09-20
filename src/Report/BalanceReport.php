@@ -344,7 +344,7 @@ final class BalanceReport
                         'type' => 'inverted',
                         'pair' => $inverted->key(),
                         'detail' => \sprintf(
-                            'interface 経由（contract）で逆転している。相手からは %s で %d 箇所',
+                            'Inverted through an interface (contract). The other direction is %s in %d places',
                             $other->strength->label(),
                             $other->references,
                         ),
@@ -355,7 +355,7 @@ final class BalanceReport
                         'type' => 'mutual',
                         'pair' => $first->from . ' <-> ' . $first->to,
                         'detail' => \sprintf(
-                            '互いに依存している（%s へ %s で %d 箇所 / %s へ %s で %d 箇所）',
+                            'Mutually dependent (%s at %s in %d places / %s at %s in %d places)',
                             $first->to,
                             $first->strength->label(),
                             $first->references,
@@ -381,7 +381,7 @@ final class BalanceReport
                     'type' => 'tight-coupling',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '距離 %d の相手に %s で依存（%d 箇所）。相手はよく変わっている',
+                        'Depends on a module %d away at %s, in %d places, and that module changes often',
                         $pair->distance,
                         $strength->label(),
                         $pair->references,
@@ -401,7 +401,7 @@ final class BalanceReport
                     'type' => 'inherited-volatility',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '自分はあまり変わらない（%d）が、よく変わる相手（%d）に %s で依存している',
+                        'Stable itself (%d), yet depends on a module that changes often (%d), at %s',
                         $ownVolatility,
                         $pair->volatility,
                         $strength->label(),
@@ -415,10 +415,10 @@ final class BalanceReport
                     'type' => 'split-ownership',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '%s で %d 箇所つながっているが、%s',
+                        'Connected at %s in %d places, but %s',
                         $strength->label(),
                         $pair->references,
-                        $pair->ownersDeclared ? 'CODEOWNERS の所有者が別のチームになっている' : '触っている人がほとんど重なっていない',
+                        $pair->ownersDeclared ? 'CODEOWNERS assigns them to different teams' : 'almost nobody touches both',
                     ),
                 ];
             }
@@ -430,7 +430,7 @@ final class BalanceReport
                     'type' => 'string-reference',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        'クラス名を文字列で書いている箇所が %d 件。型に現れず、名前を変えても追えない',
+                        '%d places write the class name as a string. It never appears as a type, and renaming cannot follow it',
                         $stringRefs,
                     ),
                 ];
@@ -442,7 +442,7 @@ final class BalanceReport
                     'type' => 'low-cohesion',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '距離 %d の近さで %s の依存が %d 箇所。近くに置く理由が弱い',
+                        'Only %d away, yet the dependency is %s in %d places. The reason for keeping them close is weak',
                         $pair->distance,
                         $strength->label(),
                         $pair->references,
@@ -455,7 +455,7 @@ final class BalanceReport
                     'type' => 'hidden',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '型の上は %s だが、%d 回のコミットで同時に変わっている（%d%%）',
+                        '%s as far as types go, yet they changed together in %d commits (%d%%)',
                         $strength->label(),
                         $pair->coChanges,
                         (int) round($rate * 100),
@@ -468,7 +468,7 @@ final class BalanceReport
                     'type' => 'intrusive-and-moving',
                     'pair' => $key,
                     'detail' => \sprintf(
-                        '内部に踏み込んだ依存が %d 箇所あり、%d%% のコミットで同時に変わっている',
+                        '%d places reach inside, and %d%% of commits change both',
                         $pair->references,
                         (int) round($rate * 100),
                     ),

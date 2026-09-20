@@ -8,6 +8,7 @@ namespace Techtrain\CouplingMeter\Report;
  * 参照の種類ごとの定型ヒント。なぜその強度になるか（why）と、1 段弱めるなら何をするか（next）。
  *
  * 判断はしない。--samples を読む人や AI が、コードを開く前に当たりを付けるための材料。
+ * 文面は公開ツールの出力なので英語で書く（コメントとコミットは日本語のまま）。
  */
 final class Hints
 {
@@ -21,68 +22,68 @@ final class Hints
     {
         return match ($kind) {
             'extends' => new self(
-                '具象クラスを継承し、親の実装と内部状態をそのまま引き継いでいる（intrusive）',
-                '継承を委譲に変える。親をフィールドに持って必要なメソッドだけ呼べば functional に下がる',
+                'Extends a concrete class, inheriting its implementation and internal state (intrusive)',
+                'Replace inheritance with delegation. Holding the parent in a field and calling only what you need drops it to functional',
             ),
             'use-trait' => new self(
-                'trait の実装を自分の内部に取り込んでいる（intrusive）',
-                'trait をクラスにして注入する。呼び出しになれば functional、interface を挟めば contract',
+                'Pulls a trait implementation into its own body (intrusive)',
+                'Turn the trait into a class and inject it. A call drops it to functional; an interface drops it to contract',
             ),
             'static-property' => new self(
-                '相手の静的プロパティ、つまり状態そのものを共有している（intrusive）',
-                '状態を持つオブジェクトにして引数で渡す。参照経路を 1 つにすれば functional',
+                'Shares a static property, which is the other side state itself (intrusive)',
+                'Move the state into an object and pass it as an argument. A single access path drops it to functional',
             ),
             'shared-table' => new self(
-                '同じテーブルを触っている。スキーマという内部表現を共有している（intrusive）',
-                'テーブルの所有者を 1 つのモジュールに決め、他はその公開メソッドか読み取り専用のビュー経由にする',
+                'Touches the same table, sharing the schema as an internal representation (intrusive)',
+                'Give the table one owning module and let the others go through its public methods or a read-only view',
             ),
             'new' => new self(
-                '相手の生成方法（コンストラクタ引数）を知っている（functional）',
-                'interface を切って factory かコンテナから受け取る。相手が抽象なら contract に下がる',
+                'Knows how the other side is constructed, down to its constructor arguments (functional)',
+                'Introduce an interface and receive it from a factory or the container. An abstract target drops it to contract',
             ),
             'static-call' => new self(
-                '静的メソッドの実装に直接依存している（functional）',
-                'インスタンスメソッドにして interface 越しに注入する。テストでも差し替えられるようになる',
+                'Depends directly on a static method implementation (functional)',
+                'Make it an instance method and inject it behind an interface, which also makes it replaceable in tests',
             ),
             'method-call' => new self(
-                '具象クラスのメソッドを呼んでいる（functional）',
-                '型を interface に置き換える。呼ぶ側は contract だけを知る状態になる',
+                'Calls a method on a concrete class (functional)',
+                'Replace the type with an interface so the caller knows only the contract',
             ),
             'container' => new self(
-                'コンテナから具象クラスを解決している（functional）',
-                'interface を bind して interface で解決する。具象名がコードから消える',
+                'Resolves a concrete class from the container (functional)',
+                'Bind and resolve the interface instead, so the concrete name disappears from the code',
             ),
             'async-dispatch' => new self(
-                'キューやイベントで非同期に渡している（functional）。実行時の距離は遠い',
-                '渡すデータを DTO や配列に絞り、相手のクラスではなくメッセージの契約に依存する',
+                'Hands work off asynchronously through a queue or an event (functional). The runtime distance is long',
+                'Narrow the payload to a DTO or an array, and depend on the message contract rather than the other class',
             ),
             'param-type', 'return-type', 'property-type' => new self(
-                '相手を型として知っている（model）。相手のプロパティやメソッドの形が変わると影響を受ける',
-                '相手が具象なら interface か DTO に置き換える。読み取り専用の値なら DTO で十分',
+                'Knows the other side as a type (model), so a change in its properties or method shapes propagates',
+                'Replace a concrete type with an interface or a DTO. For read-only values a DTO is enough',
             ),
             'instanceof', 'catch' => new self(
-                '相手の型で分岐している（model）',
-                '分岐を相手側のメソッドに移す（ポリモーフィズム）か、例外なら共通の基底例外で受ける',
+                'Branches on the other side type (model)',
+                'Move the branch into a method on that side (polymorphism), or catch a shared base exception',
             ),
             'class-const' => new self(
-                '相手のクラス定数か ::class を参照している（model）',
-                '定数なら自分側に写すか設定に出す。::class なら interface の ::class にする',
+                'References a class constant or ::class of the other side (model)',
+                'Copy the constant to your side or move it into configuration. For ::class, use the interface',
             ),
             'attribute' => new self(
-                '属性として相手のクラスを使っている（model）',
-                '属性はフレームワークの契約であることが多い。相手が自前なら interface の属性にできないか検討する',
+                'Uses the other class as an attribute (model)',
+                'Attributes are usually a framework contract. If it is your own, consider an interface-based attribute',
             ),
             'string-class' => new self(
-                'クラス名を文字列で書いている（model）。型に現れず、名前を変えても追えない',
-                '::class に置き換える。設定ファイル経由なら設定側に寄せる',
+                'Writes the class name as a string (model). It never appears as a type, and renaming cannot follow it',
+                'Replace it with ::class, or move it into configuration if it comes from a config file',
             ),
             'implements' => new self(
-                'interface か抽象クラスを実装している（contract）',
-                '十分に弱い。これ以上は弱めなくてよい',
+                'Implements an interface or an abstract class (contract)',
+                'Weak enough. Nothing to loosen here',
             ),
             default => new self(
-                '相手の内部に何らかの形で依存している',
-                '--samples の該当行を開いて、相手の何を知っているかを確かめる',
+                'Depends on the internals of the other side in some form',
+                'Open the line from --samples and check what it actually knows about the other side',
             ),
         };
     }

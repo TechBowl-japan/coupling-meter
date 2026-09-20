@@ -37,7 +37,7 @@ final class CodeOwners
         if ($explicit !== null) {
             $file = str_starts_with($explicit, '/') ? $explicit : $root . '/' . $explicit;
             if (!is_file($file)) {
-                throw new \InvalidArgumentException("CODEOWNERS が見つかりません: {$file}");
+                throw new \InvalidArgumentException("CODEOWNERS not found: {$file}");
             }
 
             return self::fromString((string) file_get_contents($file));

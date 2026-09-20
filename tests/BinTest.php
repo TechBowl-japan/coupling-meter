@@ -46,7 +46,7 @@ final class BinTest extends TestCase
 
         $this->assertSame(0, $status, $text);
         // 代表例の直後に、理由と次の一手が 1 行ずつ付く
-        $this->assertMatchesRegularExpression('/^- .+:\\d+  .+\\n    なぜ: .+\\n    次に: .+$/m', $text);
+        $this->assertMatchesRegularExpression('/^- .+:\\d+  .+\\n    why:  .+\\n    next: .+$/m', $text);
     }
 
     public function testGithubFormatEmitsWorkflowCommands(): void
@@ -89,7 +89,7 @@ final class BinTest extends TestCase
 
         unlink($baseline);
         $this->assertSame(0, $status, implode("\n", $output));
-        $this->assertStringContainsString('基準から増えた組 0', implode("\n", $output));
+        $this->assertStringContainsString('0 added since the baseline', implode("\n", $output));
     }
 
     public function testNoModulesIsNotReportedAsSuccess(): void
@@ -103,6 +103,6 @@ final class BinTest extends TestCase
 
         // 名前空間が 1 つだけのプロジェクト（このリポジトリ自身）では組ができない
         $this->assertSame(2, $status, implode("\n", $output));
-        $this->assertStringContainsString('測定対象がありません', implode("\n", $output));
+        $this->assertStringContainsString('Nothing to measure', implode("\n", $output));
     }
 }
