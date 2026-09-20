@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\ModuleMap;
+use Techtrain\CouplingMeter\Balance\ModuleMap;
 
 final class ModuleMapTest extends TestCase
 {

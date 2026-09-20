@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Analyzer;
-use Techtrain\CouplingMeter\BalanceReport;
-use Techtrain\CouplingMeter\ModuleMap;
-use Techtrain\CouplingMeter\Presets;
-use Techtrain\CouplingMeter\Rules;
+use Techtrain\CouplingMeter\Balance\ModuleMap;
+use Techtrain\CouplingMeter\Config\Presets;
+use Techtrain\CouplingMeter\Config\Rules;
+use Techtrain\CouplingMeter\Report\BalanceReport;
+use Techtrain\CouplingMeter\Source\Analyzer;
 
 final class FindingsTest extends TestCase
 {

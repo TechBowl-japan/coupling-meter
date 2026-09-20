@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Source;
 
 /**
  * 文字列からテーブル名を取り出す。

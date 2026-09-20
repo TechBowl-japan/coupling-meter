@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Report;
 
 /**
  * モジュールの組ごとに、人や AI が読む代表例を選ぶ。

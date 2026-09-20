@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Balance;
+
+use Techtrain\CouplingMeter\Config\Rules;
+use Techtrain\CouplingMeter\Strength;
 
 /**
  * モジュールの組 1 つ分の計測結果。from が to に依存している。

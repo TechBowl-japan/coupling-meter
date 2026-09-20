@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Report;
 
 /**
  * 参照の種類ごとの定型ヒント。なぜその強度になるか（why）と、1 段弱めるなら何をするか（next）。

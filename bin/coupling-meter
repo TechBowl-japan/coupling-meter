@@ -3,18 +3,18 @@
 
 declare(strict_types=1);
 
-use Techtrain\CouplingMeter\Analyzer;
-use Techtrain\CouplingMeter\Annotations;
-use Techtrain\CouplingMeter\BalanceReport;
-use Techtrain\CouplingMeter\Baseline;
-use Techtrain\CouplingMeter\CodeOwners;
-use Techtrain\CouplingMeter\GitHistory;
-use Techtrain\CouplingMeter\ModuleMap;
-use Techtrain\CouplingMeter\Options;
-use Techtrain\CouplingMeter\Packages;
-use Techtrain\CouplingMeter\Pair;
-use Techtrain\CouplingMeter\Presets;
-use Techtrain\CouplingMeter\Rules;
+use Techtrain\CouplingMeter\Balance\ModuleMap;
+use Techtrain\CouplingMeter\Balance\Pair;
+use Techtrain\CouplingMeter\Config\CodeOwners;
+use Techtrain\CouplingMeter\Config\Options;
+use Techtrain\CouplingMeter\Config\Packages;
+use Techtrain\CouplingMeter\Config\Presets;
+use Techtrain\CouplingMeter\Config\Rules;
+use Techtrain\CouplingMeter\History\GitHistory;
+use Techtrain\CouplingMeter\Report\Annotations;
+use Techtrain\CouplingMeter\Report\BalanceReport;
+use Techtrain\CouplingMeter\Report\Baseline;
+use Techtrain\CouplingMeter\Source\Analyzer;
 
 foreach ([__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'] as $autoload) {
     if (file_exists($autoload)) {

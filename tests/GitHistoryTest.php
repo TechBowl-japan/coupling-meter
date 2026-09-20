@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\GitHistory;
+use Techtrain\CouplingMeter\History\GitHistory;
 
 final class GitHistoryTest extends TestCase
 {

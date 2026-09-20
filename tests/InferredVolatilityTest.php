@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\InferredVolatility;
+use Techtrain\CouplingMeter\History\InferredVolatility;
 use Techtrain\CouplingMeter\Strength;
 
 final class InferredVolatilityTest extends TestCase

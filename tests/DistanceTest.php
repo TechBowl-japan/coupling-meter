@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Distance;
-use Techtrain\CouplingMeter\ModuleMap;
-use Techtrain\CouplingMeter\Packages;
+use Techtrain\CouplingMeter\Balance\Distance;
+use Techtrain\CouplingMeter\Balance\ModuleMap;
+use Techtrain\CouplingMeter\Config\Packages;
 
 final class DistanceTest extends TestCase
 {

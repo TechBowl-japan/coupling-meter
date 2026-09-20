@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Balance;
+
+use Techtrain\CouplingMeter\Strength;
 
 /**
  * 原著 10.3 の均衡結合方程式。

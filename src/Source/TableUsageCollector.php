@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Source;
 
 use PhpParser\Node;
 use PhpParser\NodeVisitorAbstract;
+use Techtrain\CouplingMeter\Config\Preset;
 
 /**
  * 1 ファイル分の AST から、クラスごとに「触っているテーブル」を集める。

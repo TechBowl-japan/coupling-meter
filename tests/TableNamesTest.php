@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\TableNames;
+use Techtrain\CouplingMeter\Source\TableNames;
 
 final class TableNamesTest extends TestCase
 {

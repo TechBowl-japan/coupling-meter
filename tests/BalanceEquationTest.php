@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\BalanceEquation;
+use Techtrain\CouplingMeter\Balance\BalanceEquation;
 use Techtrain\CouplingMeter\Strength;
 
 final class BalanceEquationTest extends TestCase

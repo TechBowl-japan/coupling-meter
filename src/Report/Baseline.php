@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Report;
+
+use Techtrain\CouplingMeter\Balance\Pair;
 
 /**
  * 既知の結合を記録しておき、次の実行で「新しく出た組」と「悪くなった組」だけを取り出す。

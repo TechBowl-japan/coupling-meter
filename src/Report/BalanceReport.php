@@ -2,7 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Report;
+
+use Techtrain\CouplingMeter\Balance\BalanceEquation;
+use Techtrain\CouplingMeter\Balance\Distance;
+use Techtrain\CouplingMeter\Balance\ModuleMap;
+use Techtrain\CouplingMeter\Balance\Pair;
+use Techtrain\CouplingMeter\Balance\Ranking;
+use Techtrain\CouplingMeter\Config\CodeOwners;
+use Techtrain\CouplingMeter\Config\Packages;
+use Techtrain\CouplingMeter\Config\Rules;
+use Techtrain\CouplingMeter\History\CoChange;
+use Techtrain\CouplingMeter\History\GitHistory;
+use Techtrain\CouplingMeter\History\InferredVolatility;
+use Techtrain\CouplingMeter\History\Ownership;
+use Techtrain\CouplingMeter\History\Volatility;
+use Techtrain\CouplingMeter\Source\Analyzer;
+use Techtrain\CouplingMeter\Strength;
 
 /**
  * 参照と履歴を突き合わせ、モジュールの組ごとに結合バランスを組み立てる。

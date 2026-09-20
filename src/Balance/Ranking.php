@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Techtrain\CouplingMeter;
+namespace Techtrain\CouplingMeter\Balance;
 
 /**
  * 参照数で重み付けした順位づけ（--weight-by-references）。

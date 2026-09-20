@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Analyzer;
-use Techtrain\CouplingMeter\BalanceReport;
-use Techtrain\CouplingMeter\CodeOwners;
-use Techtrain\CouplingMeter\GitHistory;
-use Techtrain\CouplingMeter\ModuleMap;
-use Techtrain\CouplingMeter\Options;
-use Techtrain\CouplingMeter\Pair;
-use Techtrain\CouplingMeter\Presets;
+use Techtrain\CouplingMeter\Balance\ModuleMap;
+use Techtrain\CouplingMeter\Balance\Pair;
+use Techtrain\CouplingMeter\Config\CodeOwners;
+use Techtrain\CouplingMeter\Config\Options;
+use Techtrain\CouplingMeter\Config\Presets;
+use Techtrain\CouplingMeter\History\GitHistory;
+use Techtrain\CouplingMeter\Report\BalanceReport;
+use Techtrain\CouplingMeter\Source\Analyzer;
 
 /**
  * 1 人が全部書いたリポジトリでも、CODEOWNERS で別チームに振られていれば距離が 1 段遠くなる。

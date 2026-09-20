@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\CoChange;
+use Techtrain\CouplingMeter\History\CoChange;
 
 final class CoChangeTest extends TestCase
 {

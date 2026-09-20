@@ -6,7 +6,7 @@ namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Techtrain\CouplingMeter\Hints;
+use Techtrain\CouplingMeter\Report\Hints;
 
 final class HintsTest extends TestCase
 {
