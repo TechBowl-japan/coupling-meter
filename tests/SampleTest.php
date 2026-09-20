@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Techtrain\CouplingMeter\Analyzer;
 use Techtrain\CouplingMeter\BalanceReport;
 use Techtrain\CouplingMeter\ModuleMap;
+use Techtrain\CouplingMeter\Presets;
 
 final class SampleTest extends TestCase
 {
@@ -15,7 +16,7 @@ final class SampleTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app', preset: Presets::resolve(['laravel']));
         $analyzer->run();
         self::$report = new BalanceReport($analyzer, new ModuleMap(2), null, __DIR__ . '/fixtures/app');
         self::$report->build();

@@ -66,11 +66,49 @@ BALANCE    = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 
 クラス参照に現れない結合のうち、同じテーブルを触っているものは `shared-table` として拾う。テーブルのスキーマという内部表現を共有しているので intrusive に置く。
 
-| 出どころ | 判定 |
+| 出どころ | 判定 | preset |
+|---|---|---|
+| Eloquent モデル | `Model` を継承するクラス。`protected $table` があればその値、なければクラス名を snake_case の複数形にしたもの | laravel |
+| Doctrine エンティティ | `#[ORM\Table(name: 'x')]` の属性、または docblock の `@ORM\Table(name="x")` | symfony |
+| 生 SQL | 文字列リテラル中の `FROM` / `JOIN` / `INTO` / `UPDATE` / `DELETE FROM` に続く識別子 | 共通 |
+| クエリビルダ | `DB::table('x')`、`->table('x')`、`->from('x')` の文字列引数 | laravel / symfony |
+
+## preset — フレームワークの規約
+
+どの呼び出しが非同期に渡しているのか、どれがコンテナ経由なのか、どのクラスがテーブルを持つのかは、フレームワークが決めていてコードからは読み取れない。解析の本体に埋めると他のフレームワークで黙って取りこぼすので、preset として外に出してある。
+
+```bash
+coupling-meter . --preset=symfony
+coupling-meter . --preset=laravel,symfony   # 複数指定するとそれぞれの規約を足す
+coupling-meter . --preset=none              # 規約に依存する検出をすべて切る
+```
+
+省略したときは `composer.json` の require から推測する（`laravel/*` と `illuminate/*` なら laravel、`symfony/*` と `doctrine/*` なら symfony）。実際に使われた preset は出力の見出しと `--json` の `preset` に出る。
+
+| preset | 拾えるようになるもの |
 |---|---|
-| Eloquent モデル | `Model` を継承するクラス。`protected $table` があればその値、なければクラス名を snake_case の複数形にしたもの |
-| 生 SQL | 文字列リテラル中の `FROM` / `JOIN` / `INTO` / `UPDATE` / `DELETE FROM` に続く識別子 |
-| クエリビルダ | `DB::table('x')`、`->table('x')`、`->from('x')` の文字列引数 |
+| laravel | `Job::dispatch()` / `dispatch(new Job)` / `event(new E)` を非同期として距離に反映、`app(Foo::class)` と `$container->make(Foo::class)` のコンテナ解決、Eloquent モデルのテーブル |
+| symfony | `$bus->dispatch(new Message)` を非同期として距離に反映、`$container->get(Foo::class)` のコンテナ解決、Doctrine エンティティのテーブル |
+
+### 独自の preset を書く
+
+プロジェクト固有の規約は `coupling-meter.yaml` の `presets:` に書いて、名前で呼ぶ。組み込みと一緒に指定すれば両方が効く。
+
+```yaml
+presets:
+  house:
+    async_methods: [publish]          # $emitter->publish(new Event) を非同期として扱う
+    container_methods: [locate]       # $registry->locate(Foo::class) をコンテナ解決として扱う
+    table_attributes: ["Persisted"]   # #[Persisted(name: 'x')] をテーブルの宣言として扱う
+```
+
+```bash
+coupling-meter . --preset=symfony,house
+```
+
+書けるキーは `container_functions`、`container_methods`、`async_static_methods`、`async_functions`、`async_methods`、`table_builder_methods`、`entity_base_classes`、`table_properties`、`table_attributes`、`pluralize_entity_name`。知らないキーは綴り間違いとして弾く。
+
+ここに置いてよいのは「フレームワークが公式に決めていて、有限で、変わらないもの」だけ。プロジェクトごとの命名規則のように無限に増えるものを入れると preset がメンテできなくなる。
 
 同じテーブルを触るクラスの組ごとに、双方向の参照を 1 件ずつ足す。モデルが 1 つもないテーブル（生 SQL 同士だけ）も組になる。
 
@@ -98,7 +136,7 @@ vendor/bin/coupling-meter <path> [--include=app,src] [--exclude=legacy] [--depth
 
 ```
 coupling-meter /path/to/project --depth=2
-  クラス 1840 / 参照 12530 / モジュール 22 / 組 111 / 解析コミット 2317
+  クラス 1840 / 参照 12530 / モジュール 22 / 組 111 / 解析コミット 2317 / preset laravel
 
   バランスが崩れている組: 20 / 111
 
@@ -145,6 +183,7 @@ coupling-meter /path/to/project --depth=2
 | `--top` | 15 | 表示する組の数 |
 | `--json` | なし | 機械可読な出力。`--top` に関係なく全組を出す。`--samples` とは同時に指定できない |
 | `--samples` | なし | 組ごとの代表例をファイルと行つきで出す。各例に「なぜその強度か」「1 段弱めるなら何をするか」の定型文を添える。AI に渡して判断させる用 |
+| `--preset` | 自動検出 | フレームワークの規約（`laravel` / `symfony` / `none`、カンマ区切りで複数可）。省略時は composer.json から推測する。`coupling-meter.yaml` の `presets:` で独自に定義できる |
 | `--rules` | 自動検出 | 意図した依存の許可ルール。省略時は root の `coupling-meter.yaml` / `deptrac.yaml` / `deptrac.config.yaml` を探す |
 | `--codeowners` | 自動検出 | 所有者の宣言。省略時は root、`.github/`、`docs/`、`.gitlab/` の `CODEOWNERS` を探す。あれば git の著者より優先する |
 | `--split` | 0 | この数を超えるクラスを持つ名前空間は、その子名前空間を別モジュールとして切る。`App\Models` のような巨大モジュールとの組で VOL と同時変更率が天井に張り付くのを防ぐ。子もまだ大きければさらに切る |

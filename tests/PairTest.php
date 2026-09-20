@@ -9,6 +9,7 @@ use Techtrain\CouplingMeter\Analyzer;
 use Techtrain\CouplingMeter\BalanceReport;
 use Techtrain\CouplingMeter\ModuleMap;
 use Techtrain\CouplingMeter\Pair;
+use Techtrain\CouplingMeter\Presets;
 use Techtrain\CouplingMeter\Rules;
 use Techtrain\CouplingMeter\Strength;
 
@@ -18,7 +19,7 @@ final class PairTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app', preset: Presets::resolve(['laravel']));
         $analyzer->run();
         self::$report = new BalanceReport($analyzer, new ModuleMap(2), null, __DIR__ . '/fixtures/app');
         self::$report->build();
@@ -78,7 +79,7 @@ final class PairTest extends TestCase
     public function testDeclaredVolatilityOverridesTheObservedOne(): void
     {
         // git 履歴がなくても、注入した変動性が相手側（to）に効く
-        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app', preset: Presets::resolve(['laravel']));
         $analyzer->run();
         $rules = Rules::fromArray(['volatility' => ['Fixture\\Domain' => 10]]);
         $report = new BalanceReport($analyzer, new ModuleMap(2), null, __DIR__ . '/fixtures/app', $rules);

@@ -15,7 +15,7 @@ final class Options
     public const DEFAULT_EXCLUDES = ['vendor', 'node_modules', 'storage', 'bootstrap/cache', 'tests', 'test'];
 
     /** 値が要るオプション */
-    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners'];
+    private const VALUED = ['depth', 'since', 'top', 'include', 'exclude', 'rules', 'split', 'codeowners', 'preset'];
 
     /** 値を取らないオプション */
     private const FLAGS = ['help', 'json', 'samples', 'weight-by-references'];
@@ -23,6 +23,7 @@ final class Options
     /**
      * @param list<string> $includes
      * @param list<string> $excludes
+     * @param list<string>|null $presets
      */
     private function __construct(
         public readonly ?string $path,
@@ -42,6 +43,8 @@ final class Options
         public readonly bool $weightByReferences,
         /** CODEOWNERS のファイル。null なら root / .github / docs / .gitlab を探す */
         public readonly ?string $codeowners,
+        /** フレームワークの規約。null なら composer.json から推測する。空なら何も足さない */
+        public readonly ?array $presets,
     ) {
     }
 
@@ -113,6 +116,7 @@ final class Options
             split: self::integerOrZero('split', $values['split'] ?? '0'),
             weightByReferences: $flags['weight-by-references'] ?? false,
             codeowners: $values['codeowners'] ?? null,
+            presets: isset($values['preset']) ? self::list($values['preset']) : null,
         );
     }
 

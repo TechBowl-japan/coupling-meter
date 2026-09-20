@@ -32,6 +32,8 @@ final class Analyzer
         private readonly string $root,
         private readonly array $excludes = Options::DEFAULT_EXCLUDES,
         private readonly array $includes = [],
+        /** フレームワークの規約。省略すると規約に依存する検出は動かない */
+        private readonly Preset $preset = new Preset('none'),
     ) {
         $this->parser = (new ParserFactory())->createForNewestSupportedVersion();
     }
@@ -178,8 +180,8 @@ final class Analyzer
         $traverser = new NodeTraverser(new NameResolver(), new ParentConnectingVisitor());
         $ast = $traverser->traverse($ast);
 
-        $collector = new ReferenceCollector($this->index, $file);
-        $tables = new TableUsageCollector($file);
+        $collector = new ReferenceCollector($this->index, $file, $this->preset);
+        $tables = new TableUsageCollector($file, $this->preset);
         $traverser = new NodeTraverser($collector, $tables);
         $traverser->traverse($ast);
 

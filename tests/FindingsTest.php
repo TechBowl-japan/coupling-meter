@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Techtrain\CouplingMeter\Analyzer;
 use Techtrain\CouplingMeter\BalanceReport;
 use Techtrain\CouplingMeter\ModuleMap;
+use Techtrain\CouplingMeter\Presets;
 use Techtrain\CouplingMeter\Rules;
 
 final class FindingsTest extends TestCase
@@ -15,7 +16,7 @@ final class FindingsTest extends TestCase
     /** @return list<array{type: string, pair: string, detail: string}> */
     private static function findings(?Rules $rules = null): array
     {
-        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app', preset: Presets::resolve(['laravel']));
         $analyzer->run();
         $report = new BalanceReport($analyzer, new ModuleMap(2), null, __DIR__ . '/fixtures/app', $rules);
         $report->build();

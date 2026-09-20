@@ -6,6 +6,7 @@ namespace Techtrain\CouplingMeter\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Techtrain\CouplingMeter\Analyzer;
+use Techtrain\CouplingMeter\Presets;
 use Techtrain\CouplingMeter\Reference;
 use Techtrain\CouplingMeter\Strength;
 
@@ -16,7 +17,7 @@ final class SharedTablesTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        $analyzer = new Analyzer(__DIR__ . '/fixtures/app');
+        $analyzer = new Analyzer(__DIR__ . '/fixtures/app', preset: Presets::resolve(['laravel']));
         $analyzer->run();
         self::$references = $analyzer->references();
     }
